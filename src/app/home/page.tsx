@@ -7,10 +7,12 @@ import {
   BriefcaseBusiness,
   UserRoundPen,
   ShieldCheck,
+  ChartNoAxesCombined,
 } from "lucide-react";
 
 // Módulos visíveis no Nexus. Os demais permanecem preservados em suas rotas.
 const modules = [
+  { label: "BI do programa", href: "/bi", icon: ChartNoAxesCombined, position: "petalBi" },
   { label: "ReBrand Pessoal", href: "/rebrand", icon: UserRoundPen, position: "petalRebrand" },
   { label: "Prosper", href: "/prosper", icon: Sparkles, position: "petalProsper" },
   { label: "Vagas", href: "/ache#vagas", icon: BriefcaseBusiness, position: "petalVagas" },
@@ -48,7 +50,7 @@ export default function HomePage() {
         <section className="hero">
           <p className="eyebrow">Sua jornada começa aqui</p>
           <h1>Mais que contratar,<br />queremos incluir.</h1>
-          <p>Explore os módulos da experiência e acompanhe seu desenvolvimento.</p>
+          <p>Explore os módulos da experiência e os indicadores do programa.</p>
         </section>
 
         <div className="nexusWrap">

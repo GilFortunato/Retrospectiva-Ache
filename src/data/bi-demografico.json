@@ -1,0 +1,2311 @@
+{
+  "source": {
+    "fileName": "BI_Demografico_Programa_Inclusao_PcD_Ache.xlsm",
+    "sheet": "Base Tratada",
+    "referenceDate": "2026-09-18",
+    "minimumCohort": 5
+  },
+  "filters": {
+    "regions": [
+      "Centro-Oeste",
+      "Nordeste",
+      "Norte",
+      "Sudeste",
+      "Sul"
+    ],
+    "states": [
+      {
+        "value": "AC",
+        "region": "Norte"
+      },
+      {
+        "value": "CE",
+        "region": "Nordeste"
+      },
+      {
+        "value": "DF",
+        "region": "Centro-Oeste"
+      },
+      {
+        "value": "ES",
+        "region": "Sudeste"
+      },
+      {
+        "value": "GO",
+        "region": "Centro-Oeste"
+      },
+      {
+        "value": "MA",
+        "region": "Nordeste"
+      },
+      {
+        "value": "MG",
+        "region": "Sudeste"
+      },
+      {
+        "value": "MS",
+        "region": "Centro-Oeste"
+      },
+      {
+        "value": "MT",
+        "region": "Centro-Oeste"
+      },
+      {
+        "value": "PB",
+        "region": "Nordeste"
+      },
+      {
+        "value": "PE",
+        "region": "Nordeste"
+      },
+      {
+        "value": "PR",
+        "region": "Sul"
+      },
+      {
+        "value": "RJ",
+        "region": "Sudeste"
+      },
+      {
+        "value": "RN",
+        "region": "Nordeste"
+      },
+      {
+        "value": "RS",
+        "region": "Sul"
+      },
+      {
+        "value": "SC",
+        "region": "Sul"
+      },
+      {
+        "value": "SE",
+        "region": "Nordeste"
+      },
+      {
+        "value": "SP",
+        "region": "Sudeste"
+      }
+    ],
+    "spRegions": [
+      "Capital",
+      "Capital/Interior (misto)",
+      "Centro-Oeste Paulista",
+      "Grande São Paulo",
+      "Litoral",
+      "Noroeste Paulista",
+      "Oeste Paulista",
+      "Região Central/Piracicaba",
+      "Região de Campinas",
+      "Região de Ribeirão Preto/Franca",
+      "Região de Sorocaba",
+      "Vale do Paraíba"
+    ]
+  },
+  "slices": {
+    "all": {
+      "total": 131,
+      "restricted": false,
+      "cityCount": 69,
+      "stateCount": 18,
+      "regionCount": 5,
+      "age": {
+        "mean": 41.8615,
+        "valid": 130,
+        "invalid": 1
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Homem cisgênero",
+            "count": 66
+          },
+          {
+            "label": "Mulher cisgênero",
+            "count": 56
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 9
+          }
+        ],
+        "race": [
+          {
+            "label": "Branca",
+            "count": 76
+          },
+          {
+            "label": "Parda",
+            "count": 42
+          },
+          {
+            "label": "Preta",
+            "count": 7
+          },
+          {
+            "label": "Amarela",
+            "count": 3
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 2
+          },
+          {
+            "label": "Não informado",
+            "count": 1
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "18–24",
+            "count": 2
+          },
+          {
+            "label": "25–34",
+            "count": 23
+          },
+          {
+            "label": "35–44",
+            "count": 55
+          },
+          {
+            "label": "45–54",
+            "count": 43
+          },
+          {
+            "label": "55+",
+            "count": 7
+          },
+          {
+            "label": "Não informada",
+            "count": 1
+          }
+        ],
+        "education": [
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 51
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 23
+          },
+          {
+            "label": "Comunicação, Marketing & Design",
+            "count": 15
+          },
+          {
+            "label": "Saúde & Biológicas",
+            "count": 14
+          },
+          {
+            "label": "Tecnologia, Dados & Engenharias",
+            "count": 8
+          },
+          {
+            "label": "Direito",
+            "count": 5
+          },
+          {
+            "label": "Educação, Letras & Humanidades",
+            "count": 5
+          },
+          {
+            "label": "Economia, Contábeis & Finanças",
+            "count": 4
+          },
+          {
+            "label": "Serviço Social",
+            "count": 2
+          },
+          {
+            "label": "Superior / área não especificada",
+            "count": 2
+          },
+          {
+            "label": "Turismo & Arquivologia",
+            "count": 1
+          },
+          {
+            "label": "Técnico / não superior",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 116
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 9
+          },
+          {
+            "label": "Em andamento / incompleta",
+            "count": 5
+          },
+          {
+            "label": "Técnico",
+            "count": 1
+          }
+        ],
+        "regions": [
+          {
+            "label": "Sudeste",
+            "count": 93
+          },
+          {
+            "label": "Nordeste",
+            "count": 22
+          },
+          {
+            "label": "Sul",
+            "count": 10
+          },
+          {
+            "label": "Centro-Oeste",
+            "count": 5
+          },
+          {
+            "label": "Norte",
+            "count": 1
+          }
+        ],
+        "states": [
+          {
+            "label": "SP",
+            "count": 68
+          },
+          {
+            "label": "RJ",
+            "count": 16
+          },
+          {
+            "label": "CE",
+            "count": 8
+          },
+          {
+            "label": "MG",
+            "count": 8
+          },
+          {
+            "label": "PE",
+            "count": 6
+          },
+          {
+            "label": "PR",
+            "count": 4
+          },
+          {
+            "label": "RS",
+            "count": 3
+          },
+          {
+            "label": "SC",
+            "count": 3
+          },
+          {
+            "label": "SE",
+            "count": 3
+          },
+          {
+            "label": "MA",
+            "count": 2
+          },
+          {
+            "label": "MS",
+            "count": 2
+          },
+          {
+            "label": "RN",
+            "count": 2
+          },
+          {
+            "label": "AC",
+            "count": 1
+          },
+          {
+            "label": "DF",
+            "count": 1
+          },
+          {
+            "label": "ES",
+            "count": 1
+          },
+          {
+            "label": "GO",
+            "count": 1
+          },
+          {
+            "label": "MT",
+            "count": 1
+          },
+          {
+            "label": "PB",
+            "count": 1
+          }
+        ],
+        "spRegions": [
+          {
+            "label": "Capital",
+            "count": 24
+          },
+          {
+            "label": "Grande São Paulo",
+            "count": 15
+          },
+          {
+            "label": "Região de Campinas",
+            "count": 8
+          },
+          {
+            "label": "Região de Sorocaba",
+            "count": 4
+          },
+          {
+            "label": "Vale do Paraíba",
+            "count": 4
+          },
+          {
+            "label": "Centro-Oeste Paulista",
+            "count": 3
+          },
+          {
+            "label": "Região de Ribeirão Preto/Franca",
+            "count": 3
+          },
+          {
+            "label": "Noroeste Paulista",
+            "count": 2
+          },
+          {
+            "label": "Oeste Paulista",
+            "count": 2
+          },
+          {
+            "label": "Capital/Interior (misto)",
+            "count": 1
+          },
+          {
+            "label": "Litoral",
+            "count": 1
+          },
+          {
+            "label": "Região Central/Piracicaba",
+            "count": 1
+          }
+        ],
+        "cities": [
+          {
+            "label": "São Paulo",
+            "count": 24
+          },
+          {
+            "label": "Rio de Janeiro",
+            "count": 9
+          },
+          {
+            "label": "Fortaleza",
+            "count": 5
+          },
+          {
+            "label": "Guarulhos",
+            "count": 5
+          },
+          {
+            "label": "Mogi das Cruzes",
+            "count": 4
+          },
+          {
+            "label": "Aracaju",
+            "count": 3
+          },
+          {
+            "label": "Belo Horizonte",
+            "count": 3
+          },
+          {
+            "label": "Campinas",
+            "count": 3
+          },
+          {
+            "label": "Niterói",
+            "count": 3
+          },
+          {
+            "label": "Recife",
+            "count": 3
+          },
+          {
+            "label": "Demais localidades",
+            "count": 68
+          },
+          {
+            "label": "Não informado",
+            "count": 1
+          }
+        ]
+      }
+    },
+    "region:Centro-Oeste": {
+      "total": 5,
+      "restricted": false,
+      "cityCount": 4,
+      "stateCount": 4,
+      "regionCount": 1,
+      "age": {
+        "mean": 44.0,
+        "valid": 5,
+        "invalid": 0
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Homem cisgênero",
+            "count": 3
+          },
+          {
+            "label": "Mulher cisgênero",
+            "count": 2
+          }
+        ],
+        "race": [
+          {
+            "label": "Parda",
+            "count": 3
+          },
+          {
+            "label": "Branca",
+            "count": 1
+          },
+          {
+            "label": "Não informado",
+            "count": 1
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "35–44",
+            "count": 3
+          },
+          {
+            "label": "45–54",
+            "count": 2
+          }
+        ],
+        "education": [
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 3
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 1
+          },
+          {
+            "label": "Saúde & Biológicas",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 4
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 1
+          }
+        ],
+        "regions": [
+          {
+            "label": "Centro-Oeste",
+            "count": 5
+          }
+        ],
+        "states": [
+          {
+            "label": "MS",
+            "count": 2
+          },
+          {
+            "label": "DF",
+            "count": 1
+          },
+          {
+            "label": "GO",
+            "count": 1
+          },
+          {
+            "label": "MT",
+            "count": 1
+          }
+        ],
+        "spRegions": [],
+        "cities": [
+          {
+            "label": "Demais localidades",
+            "count": 4
+          },
+          {
+            "label": "Não informado",
+            "count": 1
+          }
+        ]
+      }
+    },
+    "region:Nordeste": {
+      "total": 22,
+      "restricted": false,
+      "cityCount": 12,
+      "stateCount": 6,
+      "regionCount": 1,
+      "age": {
+        "mean": 39.9545,
+        "valid": 22,
+        "invalid": 0
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Mulher cisgênero",
+            "count": 10
+          },
+          {
+            "label": "Homem cisgênero",
+            "count": 8
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 4
+          }
+        ],
+        "race": [
+          {
+            "label": "Parda",
+            "count": 10
+          },
+          {
+            "label": "Branca",
+            "count": 7
+          },
+          {
+            "label": "Preta",
+            "count": 3
+          },
+          {
+            "label": "Amarela",
+            "count": 1
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 1
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "25–34",
+            "count": 6
+          },
+          {
+            "label": "35–44",
+            "count": 10
+          },
+          {
+            "label": "45–54",
+            "count": 6
+          }
+        ],
+        "education": [
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 5
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 5
+          },
+          {
+            "label": "Comunicação, Marketing & Design",
+            "count": 4
+          },
+          {
+            "label": "Economia, Contábeis & Finanças",
+            "count": 2
+          },
+          {
+            "label": "Educação, Letras & Humanidades",
+            "count": 2
+          },
+          {
+            "label": "Saúde & Biológicas",
+            "count": 2
+          },
+          {
+            "label": "Tecnologia, Dados & Engenharias",
+            "count": 2
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 18
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 3
+          },
+          {
+            "label": "Em andamento / incompleta",
+            "count": 1
+          }
+        ],
+        "regions": [
+          {
+            "label": "Nordeste",
+            "count": 22
+          }
+        ],
+        "states": [
+          {
+            "label": "CE",
+            "count": 8
+          },
+          {
+            "label": "PE",
+            "count": 6
+          },
+          {
+            "label": "SE",
+            "count": 3
+          },
+          {
+            "label": "MA",
+            "count": 2
+          },
+          {
+            "label": "RN",
+            "count": 2
+          },
+          {
+            "label": "PB",
+            "count": 1
+          }
+        ],
+        "spRegions": [],
+        "cities": [
+          {
+            "label": "Fortaleza",
+            "count": 5
+          },
+          {
+            "label": "Aracaju",
+            "count": 3
+          },
+          {
+            "label": "Recife",
+            "count": 3
+          },
+          {
+            "label": "Demais localidades",
+            "count": 11
+          }
+        ]
+      }
+    },
+    "region:Norte": {
+      "total": 1,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "region:Sudeste": {
+      "total": 93,
+      "restricted": false,
+      "cityCount": 44,
+      "stateCount": 4,
+      "regionCount": 1,
+      "age": {
+        "mean": 43.0978,
+        "valid": 92,
+        "invalid": 1
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Homem cisgênero",
+            "count": 51
+          },
+          {
+            "label": "Mulher cisgênero",
+            "count": 37
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 5
+          }
+        ],
+        "race": [
+          {
+            "label": "Branca",
+            "count": 61
+          },
+          {
+            "label": "Parda",
+            "count": 26
+          },
+          {
+            "label": "Preta",
+            "count": 3
+          },
+          {
+            "label": "Amarela",
+            "count": 2
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 1
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "18–24",
+            "count": 1
+          },
+          {
+            "label": "25–34",
+            "count": 12
+          },
+          {
+            "label": "35–44",
+            "count": 39
+          },
+          {
+            "label": "45–54",
+            "count": 33
+          },
+          {
+            "label": "55+",
+            "count": 7
+          },
+          {
+            "label": "Não informada",
+            "count": 1
+          }
+        ],
+        "education": [
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 42
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 14
+          },
+          {
+            "label": "Comunicação, Marketing & Design",
+            "count": 10
+          },
+          {
+            "label": "Saúde & Biológicas",
+            "count": 8
+          },
+          {
+            "label": "Direito",
+            "count": 5
+          },
+          {
+            "label": "Tecnologia, Dados & Engenharias",
+            "count": 4
+          },
+          {
+            "label": "Educação, Letras & Humanidades",
+            "count": 3
+          },
+          {
+            "label": "Serviço Social",
+            "count": 2
+          },
+          {
+            "label": "Superior / área não especificada",
+            "count": 2
+          },
+          {
+            "label": "Economia, Contábeis & Finanças",
+            "count": 1
+          },
+          {
+            "label": "Turismo & Arquivologia",
+            "count": 1
+          },
+          {
+            "label": "Técnico / não superior",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 84
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 5
+          },
+          {
+            "label": "Em andamento / incompleta",
+            "count": 3
+          },
+          {
+            "label": "Técnico",
+            "count": 1
+          }
+        ],
+        "regions": [
+          {
+            "label": "Sudeste",
+            "count": 93
+          }
+        ],
+        "states": [
+          {
+            "label": "SP",
+            "count": 68
+          },
+          {
+            "label": "RJ",
+            "count": 16
+          },
+          {
+            "label": "MG",
+            "count": 8
+          },
+          {
+            "label": "ES",
+            "count": 1
+          }
+        ],
+        "spRegions": [
+          {
+            "label": "Capital",
+            "count": 24
+          },
+          {
+            "label": "Grande São Paulo",
+            "count": 15
+          },
+          {
+            "label": "Região de Campinas",
+            "count": 8
+          },
+          {
+            "label": "Região de Sorocaba",
+            "count": 4
+          },
+          {
+            "label": "Vale do Paraíba",
+            "count": 4
+          },
+          {
+            "label": "Centro-Oeste Paulista",
+            "count": 3
+          },
+          {
+            "label": "Região de Ribeirão Preto/Franca",
+            "count": 3
+          },
+          {
+            "label": "Noroeste Paulista",
+            "count": 2
+          },
+          {
+            "label": "Oeste Paulista",
+            "count": 2
+          },
+          {
+            "label": "Capital/Interior (misto)",
+            "count": 1
+          },
+          {
+            "label": "Litoral",
+            "count": 1
+          },
+          {
+            "label": "Região Central/Piracicaba",
+            "count": 1
+          }
+        ],
+        "cities": [
+          {
+            "label": "São Paulo",
+            "count": 24
+          },
+          {
+            "label": "Rio de Janeiro",
+            "count": 9
+          },
+          {
+            "label": "Guarulhos",
+            "count": 5
+          },
+          {
+            "label": "Mogi das Cruzes",
+            "count": 4
+          },
+          {
+            "label": "Belo Horizonte",
+            "count": 3
+          },
+          {
+            "label": "Campinas",
+            "count": 3
+          },
+          {
+            "label": "Niterói",
+            "count": 3
+          },
+          {
+            "label": "Demais localidades",
+            "count": 42
+          }
+        ]
+      }
+    },
+    "region:Sul": {
+      "total": 10,
+      "restricted": false,
+      "cityCount": 8,
+      "stateCount": 3,
+      "regionCount": 1,
+      "age": {
+        "mean": 35.0,
+        "valid": 10,
+        "invalid": 0
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Mulher cisgênero",
+            "count": 7
+          },
+          {
+            "label": "Homem cisgênero",
+            "count": 3
+          }
+        ],
+        "race": [
+          {
+            "label": "Branca",
+            "count": 7
+          },
+          {
+            "label": "Parda",
+            "count": 2
+          },
+          {
+            "label": "Preta",
+            "count": 1
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "18–24",
+            "count": 1
+          },
+          {
+            "label": "25–34",
+            "count": 4
+          },
+          {
+            "label": "35–44",
+            "count": 3
+          },
+          {
+            "label": "45–54",
+            "count": 2
+          }
+        ],
+        "education": [
+          {
+            "label": "Multidisciplinar",
+            "count": 3
+          },
+          {
+            "label": "Saúde & Biológicas",
+            "count": 3
+          },
+          {
+            "label": "Tecnologia, Dados & Engenharias",
+            "count": 2
+          },
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 1
+          },
+          {
+            "label": "Comunicação, Marketing & Design",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 9
+          },
+          {
+            "label": "Em andamento / incompleta",
+            "count": 1
+          }
+        ],
+        "regions": [
+          {
+            "label": "Sul",
+            "count": 10
+          }
+        ],
+        "states": [
+          {
+            "label": "PR",
+            "count": 4
+          },
+          {
+            "label": "RS",
+            "count": 3
+          },
+          {
+            "label": "SC",
+            "count": 3
+          }
+        ],
+        "spRegions": [],
+        "cities": [
+          {
+            "label": "Demais localidades",
+            "count": 10
+          }
+        ]
+      }
+    },
+    "state:AC": {
+      "total": 1,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:CE": {
+      "total": 8,
+      "restricted": false,
+      "cityCount": 4,
+      "stateCount": 1,
+      "regionCount": 1,
+      "age": {
+        "mean": 38.875,
+        "valid": 8,
+        "invalid": 0
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Mulher cisgênero",
+            "count": 5
+          },
+          {
+            "label": "Homem cisgênero",
+            "count": 2
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 1
+          }
+        ],
+        "race": [
+          {
+            "label": "Parda",
+            "count": 5
+          },
+          {
+            "label": "Preta",
+            "count": 2
+          },
+          {
+            "label": "Amarela",
+            "count": 1
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "25–34",
+            "count": 3
+          },
+          {
+            "label": "35–44",
+            "count": 4
+          },
+          {
+            "label": "45–54",
+            "count": 1
+          }
+        ],
+        "education": [
+          {
+            "label": "Comunicação, Marketing & Design",
+            "count": 3
+          },
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 2
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 2
+          },
+          {
+            "label": "Educação, Letras & Humanidades",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 6
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 2
+          }
+        ],
+        "regions": [
+          {
+            "label": "Nordeste",
+            "count": 8
+          }
+        ],
+        "states": [
+          {
+            "label": "CE",
+            "count": 8
+          }
+        ],
+        "spRegions": [],
+        "cities": [
+          {
+            "label": "Fortaleza",
+            "count": 5
+          },
+          {
+            "label": "Demais localidades",
+            "count": 3
+          }
+        ]
+      }
+    },
+    "state:DF": {
+      "total": 1,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:ES": {
+      "total": 1,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:GO": {
+      "total": 1,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:MA": {
+      "total": 2,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:MG": {
+      "total": 8,
+      "restricted": false,
+      "cityCount": 5,
+      "stateCount": 1,
+      "regionCount": 1,
+      "age": {
+        "mean": 45.0,
+        "valid": 8,
+        "invalid": 0
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Homem cisgênero",
+            "count": 5
+          },
+          {
+            "label": "Mulher cisgênero",
+            "count": 2
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 1
+          }
+        ],
+        "race": [
+          {
+            "label": "Branca",
+            "count": 4
+          },
+          {
+            "label": "Parda",
+            "count": 4
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "35–44",
+            "count": 3
+          },
+          {
+            "label": "45–54",
+            "count": 5
+          }
+        ],
+        "education": [
+          {
+            "label": "Comunicação, Marketing & Design",
+            "count": 3
+          },
+          {
+            "label": "Direito",
+            "count": 2
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 2
+          },
+          {
+            "label": "Educação, Letras & Humanidades",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 7
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 1
+          }
+        ],
+        "regions": [
+          {
+            "label": "Sudeste",
+            "count": 8
+          }
+        ],
+        "states": [
+          {
+            "label": "MG",
+            "count": 8
+          }
+        ],
+        "spRegions": [],
+        "cities": [
+          {
+            "label": "Belo Horizonte",
+            "count": 3
+          },
+          {
+            "label": "Demais localidades",
+            "count": 5
+          }
+        ]
+      }
+    },
+    "state:MS": {
+      "total": 2,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:MT": {
+      "total": 1,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:PB": {
+      "total": 1,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:PE": {
+      "total": 6,
+      "restricted": false,
+      "cityCount": 4,
+      "stateCount": 1,
+      "regionCount": 1,
+      "age": {
+        "mean": 44.3333,
+        "valid": 6,
+        "invalid": 0
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Mulher cisgênero",
+            "count": 3
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 2
+          },
+          {
+            "label": "Homem cisgênero",
+            "count": 1
+          }
+        ],
+        "race": [
+          {
+            "label": "Parda",
+            "count": 3
+          },
+          {
+            "label": "Branca",
+            "count": 2
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 1
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "25–34",
+            "count": 1
+          },
+          {
+            "label": "35–44",
+            "count": 1
+          },
+          {
+            "label": "45–54",
+            "count": 4
+          }
+        ],
+        "education": [
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 3
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 2
+          },
+          {
+            "label": "Saúde & Biológicas",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 5
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 1
+          }
+        ],
+        "regions": [
+          {
+            "label": "Nordeste",
+            "count": 6
+          }
+        ],
+        "states": [
+          {
+            "label": "PE",
+            "count": 6
+          }
+        ],
+        "spRegions": [],
+        "cities": [
+          {
+            "label": "Recife",
+            "count": 3
+          },
+          {
+            "label": "Demais localidades",
+            "count": 3
+          }
+        ]
+      }
+    },
+    "state:PR": {
+      "total": 4,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:RJ": {
+      "total": 16,
+      "restricted": false,
+      "cityCount": 5,
+      "stateCount": 1,
+      "regionCount": 1,
+      "age": {
+        "mean": 44.75,
+        "valid": 16,
+        "invalid": 0
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Homem cisgênero",
+            "count": 9
+          },
+          {
+            "label": "Mulher cisgênero",
+            "count": 6
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 1
+          }
+        ],
+        "race": [
+          {
+            "label": "Branca",
+            "count": 11
+          },
+          {
+            "label": "Parda",
+            "count": 3
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 1
+          },
+          {
+            "label": "Preta",
+            "count": 1
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "18–24",
+            "count": 1
+          },
+          {
+            "label": "25–34",
+            "count": 2
+          },
+          {
+            "label": "35–44",
+            "count": 3
+          },
+          {
+            "label": "45–54",
+            "count": 8
+          },
+          {
+            "label": "55+",
+            "count": 2
+          }
+        ],
+        "education": [
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 8
+          },
+          {
+            "label": "Comunicação, Marketing & Design",
+            "count": 3
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 2
+          },
+          {
+            "label": "Direito",
+            "count": 1
+          },
+          {
+            "label": "Educação, Letras & Humanidades",
+            "count": 1
+          },
+          {
+            "label": "Tecnologia, Dados & Engenharias",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 14
+          },
+          {
+            "label": "Em andamento / incompleta",
+            "count": 2
+          }
+        ],
+        "regions": [
+          {
+            "label": "Sudeste",
+            "count": 16
+          }
+        ],
+        "states": [
+          {
+            "label": "RJ",
+            "count": 16
+          }
+        ],
+        "spRegions": [],
+        "cities": [
+          {
+            "label": "Rio de Janeiro",
+            "count": 9
+          },
+          {
+            "label": "Niterói",
+            "count": 3
+          },
+          {
+            "label": "Demais localidades",
+            "count": 4
+          }
+        ]
+      }
+    },
+    "state:RN": {
+      "total": 2,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:RS": {
+      "total": 3,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:SC": {
+      "total": 3,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:SE": {
+      "total": 3,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "state:SP": {
+      "total": 68,
+      "restricted": false,
+      "cityCount": 33,
+      "stateCount": 1,
+      "regionCount": 1,
+      "age": {
+        "mean": 42.403,
+        "valid": 67,
+        "invalid": 1
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Homem cisgênero",
+            "count": 36
+          },
+          {
+            "label": "Mulher cisgênero",
+            "count": 29
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 3
+          }
+        ],
+        "race": [
+          {
+            "label": "Branca",
+            "count": 45
+          },
+          {
+            "label": "Parda",
+            "count": 19
+          },
+          {
+            "label": "Amarela",
+            "count": 2
+          },
+          {
+            "label": "Preta",
+            "count": 2
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "25–34",
+            "count": 10
+          },
+          {
+            "label": "35–44",
+            "count": 33
+          },
+          {
+            "label": "45–54",
+            "count": 19
+          },
+          {
+            "label": "55+",
+            "count": 5
+          },
+          {
+            "label": "Não informada",
+            "count": 1
+          }
+        ],
+        "education": [
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 34
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 10
+          },
+          {
+            "label": "Saúde & Biológicas",
+            "count": 8
+          },
+          {
+            "label": "Comunicação, Marketing & Design",
+            "count": 4
+          },
+          {
+            "label": "Tecnologia, Dados & Engenharias",
+            "count": 3
+          },
+          {
+            "label": "Direito",
+            "count": 2
+          },
+          {
+            "label": "Serviço Social",
+            "count": 2
+          },
+          {
+            "label": "Superior / área não especificada",
+            "count": 2
+          },
+          {
+            "label": "Economia, Contábeis & Finanças",
+            "count": 1
+          },
+          {
+            "label": "Educação, Letras & Humanidades",
+            "count": 1
+          },
+          {
+            "label": "Técnico / não superior",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 62
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 4
+          },
+          {
+            "label": "Em andamento / incompleta",
+            "count": 1
+          },
+          {
+            "label": "Técnico",
+            "count": 1
+          }
+        ],
+        "regions": [
+          {
+            "label": "Sudeste",
+            "count": 68
+          }
+        ],
+        "states": [
+          {
+            "label": "SP",
+            "count": 68
+          }
+        ],
+        "spRegions": [
+          {
+            "label": "Capital",
+            "count": 24
+          },
+          {
+            "label": "Grande São Paulo",
+            "count": 15
+          },
+          {
+            "label": "Região de Campinas",
+            "count": 8
+          },
+          {
+            "label": "Região de Sorocaba",
+            "count": 4
+          },
+          {
+            "label": "Vale do Paraíba",
+            "count": 4
+          },
+          {
+            "label": "Centro-Oeste Paulista",
+            "count": 3
+          },
+          {
+            "label": "Região de Ribeirão Preto/Franca",
+            "count": 3
+          },
+          {
+            "label": "Noroeste Paulista",
+            "count": 2
+          },
+          {
+            "label": "Oeste Paulista",
+            "count": 2
+          },
+          {
+            "label": "Capital/Interior (misto)",
+            "count": 1
+          },
+          {
+            "label": "Litoral",
+            "count": 1
+          },
+          {
+            "label": "Região Central/Piracicaba",
+            "count": 1
+          }
+        ],
+        "cities": [
+          {
+            "label": "São Paulo",
+            "count": 24
+          },
+          {
+            "label": "Guarulhos",
+            "count": 5
+          },
+          {
+            "label": "Mogi das Cruzes",
+            "count": 4
+          },
+          {
+            "label": "Campinas",
+            "count": 3
+          },
+          {
+            "label": "Demais localidades",
+            "count": 32
+          }
+        ]
+      }
+    },
+    "sp:Capital": {
+      "total": 24,
+      "restricted": false,
+      "cityCount": 1,
+      "stateCount": 1,
+      "regionCount": 1,
+      "age": {
+        "mean": 43.0,
+        "valid": 24,
+        "invalid": 0
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Homem cisgênero",
+            "count": 12
+          },
+          {
+            "label": "Mulher cisgênero",
+            "count": 12
+          }
+        ],
+        "race": [
+          {
+            "label": "Branca",
+            "count": 15
+          },
+          {
+            "label": "Parda",
+            "count": 7
+          },
+          {
+            "label": "Amarela",
+            "count": 1
+          },
+          {
+            "label": "Preta",
+            "count": 1
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "25–34",
+            "count": 5
+          },
+          {
+            "label": "35–44",
+            "count": 10
+          },
+          {
+            "label": "45–54",
+            "count": 5
+          },
+          {
+            "label": "55+",
+            "count": 4
+          }
+        ],
+        "education": [
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 10
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 6
+          },
+          {
+            "label": "Saúde & Biológicas",
+            "count": 4
+          },
+          {
+            "label": "Comunicação, Marketing & Design",
+            "count": 2
+          },
+          {
+            "label": "Economia, Contábeis & Finanças",
+            "count": 1
+          },
+          {
+            "label": "Serviço Social",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 22
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 2
+          }
+        ],
+        "regions": [
+          {
+            "label": "Sudeste",
+            "count": 24
+          }
+        ],
+        "states": [
+          {
+            "label": "SP",
+            "count": 24
+          }
+        ],
+        "spRegions": [
+          {
+            "label": "Capital",
+            "count": 24
+          }
+        ],
+        "cities": [
+          {
+            "label": "São Paulo",
+            "count": 24
+          }
+        ]
+      }
+    },
+    "sp:Capital/Interior (misto)": {
+      "total": 1,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "sp:Centro-Oeste Paulista": {
+      "total": 3,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "sp:Grande São Paulo": {
+      "total": 15,
+      "restricted": false,
+      "cityCount": 7,
+      "stateCount": 1,
+      "regionCount": 1,
+      "age": {
+        "mean": 40.9286,
+        "valid": 14,
+        "invalid": 1
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Homem cisgênero",
+            "count": 6
+          },
+          {
+            "label": "Mulher cisgênero",
+            "count": 6
+          },
+          {
+            "label": "Prefiro não responder",
+            "count": 3
+          }
+        ],
+        "race": [
+          {
+            "label": "Branca",
+            "count": 7
+          },
+          {
+            "label": "Parda",
+            "count": 6
+          },
+          {
+            "label": "Amarela",
+            "count": 1
+          },
+          {
+            "label": "Preta",
+            "count": 1
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "25–34",
+            "count": 3
+          },
+          {
+            "label": "35–44",
+            "count": 6
+          },
+          {
+            "label": "45–54",
+            "count": 4
+          },
+          {
+            "label": "55+",
+            "count": 1
+          },
+          {
+            "label": "Não informada",
+            "count": 1
+          }
+        ],
+        "education": [
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 10
+          },
+          {
+            "label": "Direito",
+            "count": 2
+          },
+          {
+            "label": "Serviço Social",
+            "count": 1
+          },
+          {
+            "label": "Superior / área não especificada",
+            "count": 1
+          },
+          {
+            "label": "Tecnologia, Dados & Engenharias",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 13
+          },
+          {
+            "label": "Em andamento / incompleta",
+            "count": 1
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 1
+          }
+        ],
+        "regions": [
+          {
+            "label": "Sudeste",
+            "count": 15
+          }
+        ],
+        "states": [
+          {
+            "label": "SP",
+            "count": 15
+          }
+        ],
+        "spRegions": [
+          {
+            "label": "Grande São Paulo",
+            "count": 15
+          }
+        ],
+        "cities": [
+          {
+            "label": "Guarulhos",
+            "count": 5
+          },
+          {
+            "label": "Mogi das Cruzes",
+            "count": 4
+          },
+          {
+            "label": "Demais localidades",
+            "count": 6
+          }
+        ]
+      }
+    },
+    "sp:Litoral": {
+      "total": 1,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "sp:Noroeste Paulista": {
+      "total": 2,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "sp:Oeste Paulista": {
+      "total": 2,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "sp:Região Central/Piracicaba": {
+      "total": 1,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "sp:Região de Campinas": {
+      "total": 8,
+      "restricted": false,
+      "cityCount": 6,
+      "stateCount": 1,
+      "regionCount": 1,
+      "age": {
+        "mean": 41.75,
+        "valid": 8,
+        "invalid": 0
+      },
+      "distributions": {
+        "gender": [
+          {
+            "label": "Homem cisgênero",
+            "count": 5
+          },
+          {
+            "label": "Mulher cisgênero",
+            "count": 3
+          }
+        ],
+        "race": [
+          {
+            "label": "Branca",
+            "count": 6
+          },
+          {
+            "label": "Parda",
+            "count": 2
+          }
+        ],
+        "ageBands": [
+          {
+            "label": "25–34",
+            "count": 1
+          },
+          {
+            "label": "35–44",
+            "count": 5
+          },
+          {
+            "label": "45–54",
+            "count": 2
+          }
+        ],
+        "education": [
+          {
+            "label": "Administração, Gestão & Negócios",
+            "count": 2
+          },
+          {
+            "label": "Comunicação, Marketing & Design",
+            "count": 2
+          },
+          {
+            "label": "Multidisciplinar",
+            "count": 2
+          },
+          {
+            "label": "Educação, Letras & Humanidades",
+            "count": 1
+          },
+          {
+            "label": "Saúde & Biológicas",
+            "count": 1
+          }
+        ],
+        "educationStatus": [
+          {
+            "label": "Superior informada",
+            "count": 7
+          },
+          {
+            "label": "Mista / múltiplas formações",
+            "count": 1
+          }
+        ],
+        "regions": [
+          {
+            "label": "Sudeste",
+            "count": 8
+          }
+        ],
+        "states": [
+          {
+            "label": "SP",
+            "count": 8
+          }
+        ],
+        "spRegions": [
+          {
+            "label": "Região de Campinas",
+            "count": 8
+          }
+        ],
+        "cities": [
+          {
+            "label": "Campinas",
+            "count": 3
+          },
+          {
+            "label": "Demais localidades",
+            "count": 5
+          }
+        ]
+      }
+    },
+    "sp:Região de Ribeirão Preto/Franca": {
+      "total": 3,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "sp:Região de Sorocaba": {
+      "total": 4,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    },
+    "sp:Vale do Paraíba": {
+      "total": 4,
+      "restricted": true,
+      "cityCount": null,
+      "stateCount": null,
+      "regionCount": null,
+      "age": null,
+      "distributions": null
+    }
+  }
+}
