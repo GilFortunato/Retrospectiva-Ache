@@ -1,0 +1,19 @@
+.form, .form label { display: grid; gap: 8px; }
+.form { gap: 16px; margin-top: 20px; }
+.form label { font-weight: 700; }
+.form input, .form button {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+}
+.form input { border: 1px solid #d7b6c7; color: var(--ink); background: #fff; }
+.form button { border: 0; background: var(--magenta); color: #fff; font-weight: 700; cursor: pointer; }
+.form button:disabled { opacity: .65; cursor: wait; }
+.form :focus-visible, .actions :focus-visible { outline: 2px solid var(--magenta-dark); outline-offset: 3px; }
+.form small { margin: -8px 0 0; }
+.form .error { margin: 0; color: #942743; }
+.actions { display: flex; justify-content: space-between; gap: 16px; margin-top: 16px; }
+.actions a, .actions button { color: var(--magenta-dark); font: inherit; font-weight: 700; text-decoration: underline; }
+.actions button { padding: 0; border: 0; background: none; cursor: pointer; }

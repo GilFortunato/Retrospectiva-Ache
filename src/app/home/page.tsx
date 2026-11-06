@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  UserRoundPen,
+  FolderOpen,
   ShieldCheck,
   ChartNoAxesCombined,
   MessageCircle,
@@ -15,7 +15,7 @@ import {
 // Módulos visíveis no Nexus. Os demais permanecem preservados em suas rotas.
 const modules = [
   { label: "BI do programa", href: "/bi", icon: ChartNoAxesCombined, position: "petalBi" },
-  { label: "ReBrand Pessoal", href: "/rebrand", icon: UserRoundPen, position: "petalRebrand" },
+  { label: "Documentações", href: "/documentacoes", icon: FolderOpen, position: "petalDocumentacoes" },
   { label: "Candidatos", href: "/candidatos", icon: UsersRound, position: "petalCandidatos" },
   { label: "Satisfação", href: "/satisfacao", icon: MessageCircle, position: "petalSatisfacao" },
 ];
@@ -38,14 +38,18 @@ export default function HomePage() {
           <span>Programa PcD – Propagandista Trainee</span>
         </div>
 
-        <Link
-          href="/admin"
-          className="adminIcon"
-          aria-label="Área administrativa"
-          title="Área administrativa"
-        >
-          <ShieldCheck size={20} strokeWidth={1.8} aria-hidden="true" />
-        </Link>
+        <div className="portalAccount">
+          <Link href="/trocar-senha">Trocar senha</Link>
+          <form action="/api/acesso/sair" method="post"><button type="submit">Sair</button></form>
+          <Link
+            href="/admin"
+            className="adminIcon"
+            aria-label="Área administrativa"
+            title="Área administrativa"
+          >
+            <ShieldCheck size={20} strokeWidth={1.8} aria-hidden="true" />
+          </Link>
+        </div>
       </header>
 
       <div className="homeContent">

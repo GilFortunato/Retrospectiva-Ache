@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, type ChangeEvent } from "react";
 import { ArrowLeft, Award, ChartNoAxesCombined, ChevronDown, ClipboardList, FileSpreadsheet, Flag, MessageCircle, ShieldCheck, Star, Upload, UsersRound, type LucideIcon } from "lucide-react";
-import { rankApprovals, rankByGrade, type TeacherHighlights } from "@/lib/approvalRanking";
+import { orderTeacherRecommendations, rankApprovals, rankByGrade, type TeacherHighlights } from "@/lib/approvalRanking";
 import type { ClassDiary, ClassId, ClassPerformance, DiaryParticipant, PerformanceField } from "@/lib/classDiary";
 import { participantKey } from "@/lib/participantName";
 import dashboard from "@/components/bi/DemographicDashboard.module.css";
@@ -103,16 +103,20 @@ function RankingByGrade({ participants, highlights }: {
   );
 }
 
-function ParticipantDetails({ participant, group, subtitle, labels = [] }: {
+function ParticipantDetails({ participant, group, subtitle, badge, labels = [] }: {
   participant: DiaryParticipant;
   group: string;
   subtitle?: string;
+  badge?: string;
   labels?: readonly string[];
 }) {
   return (
-    <details className={styles.participantDetails} name={group}>
+    <details className={badge ? `${styles.participantDetails} ${styles.priorityCandidate}` : styles.participantDetails} name={group}>
       <summary>
-        <span>{participant.name}{subtitle ? <small className={styles.candidateSubtitle}>{subtitle}</small> : null}</span>
+        <span>
+          {badge ? <small className={styles.priorityBadge}>{badge}</small> : null}
+          {participant.name}{subtitle ? <small className={styles.candidateSubtitle}>{subtitle}</small> : null}
+        </span>
         <ChevronDown size={18} aria-hidden="true" />
       </summary>
       <div className={styles.participantBody}>
@@ -146,8 +150,13 @@ function ParticipantDetails({ participant, group, subtitle, labels = [] }: {
   );
 }
 
-function Candidates({ loaded, teacherHighlights }: { loaded: LoadedDiaries; teacherHighlights: TeacherHighlights }) {
+function Candidates({ loaded, teacherHighlights, priorities }: {
+  loaded: LoadedDiaries;
+  teacherHighlights: TeacherHighlights;
+  priorities: Readonly<Record<string, number>>;
+}) {
   const [filter, setFilter] = useState<ClassId | "all">("all");
+  const [nameSearch, setNameSearch] = useState("");
   const candidates = rankByGrade(classIds.flatMap(classId => (loaded[classId]?.results.approved ?? []).map((participant, index) => ({
     id: `${classId}-${participant.name}-${index}`,
     classId,
@@ -155,49 +164,89 @@ function Candidates({ loaded, teacherHighlights }: { loaded: LoadedDiaries; teac
     name: participant.name,
     grade: participant.finalGrade,
   }))));
-  const visible = candidates.filter(row => filter === "all" || row.classId === filter);
+  const search = participantKey(nameSearch);
+  const visible = candidates.filter(row =>
+    (filter === "all" || row.classId === filter) && participantKey(row.name).includes(search),
+  );
   const pending = candidates.filter(row => row.position === null).length;
+  const { featured, others } = orderTeacherRecommendations(candidates, teacherHighlights, priorities);
 
-  return (
+  function candidateCard({ id, participant, classId, position, grade }: typeof candidates[number], group: string, badge?: string) {
+    const labels = teacherHighlights[classId];
+    const key = participantKey(participant.name);
+    const displayName = participant.name.charAt(0).toLocaleUpperCase("pt-BR") + participant.name.slice(1);
+    const rank = position === null ? "Média final pendente" : `${position}º geral · Média ${formatMetric(grade)}`;
+    return <ParticipantDetails
+      key={id}
+      participant={{ ...participant, name: displayName }}
+      group={group}
+      badge={badge}
+      subtitle={`Turma ${classId} · ${rank}`}
+      labels={labels && Object.hasOwn(labels, key) ? labels[key] : []}
+    />;
+  }
+
+  return <>
+    <section className={`${dashboard.card} ${styles.results}`} aria-labelledby="recomendacoes">
+      <div className={styles.resultsHeader}>
+        <div>
+          <h2 id="recomendacoes">Recomendações</h2>
+          <p className={styles.source}>Depois dos destaques prioritários, as indicações dos professores seguem a ordem do ranking geral.</p>
+        </div>
+      </div>
+      {featured.length ? <div className={styles.recommendationHighlights}>
+        {featured.map(row => candidateCard(row, "fichas-recomendadas", `${row.priority}º destaque`))}
+      </div> : null}
+      {others.length ? <details className={`${styles.participantDetails} ${styles.moreRecommendations}`}>
+        <summary>
+          <span>{featured.length ? "Outras indicações" : "Indicações dos professores"} ({others.length})</span>
+          <ChevronDown size={18} aria-hidden="true" />
+        </summary>
+        <div className={`${styles.participantBody} ${styles.participantList}`}>
+          {others.map(row => candidateCard(row, "fichas-recomendadas"))}
+        </div>
+      </details> : null}
+      {!featured.length && !others.length ? <p className={styles.empty}>Ainda não há indicações disponíveis.</p> : null}
+    </section>
     <section className={`${dashboard.card} ${styles.results}`} aria-labelledby="ranking-geral">
       <div className={styles.resultsHeader}>
         <div>
           <h2 id="ranking-geral">Ranking geral</h2>
           <p className={styles.source}>Posição pela média final nas três turmas. Empates compartilham a posição.</p>
         </div>
+      </div>
+      <div className={styles.candidateFilters} role="group" aria-label="Filtros de candidatos">
         <label className={styles.classFilter}>Filtrar por turma
           <select value={filter} onChange={event => setFilter(event.target.value as ClassId | "all")}>
             <option value="all">Todas as turmas</option>
             {classIds.map(classId => <option key={classId} value={classId}>Turma {classId}</option>)}
           </select>
         </label>
+        <label className={styles.classFilter}>Pesquisar por nome
+          <input
+            type="search"
+            placeholder="Digite o nome ou sobrenome"
+            value={nameSearch}
+            onChange={event => setNameSearch(event.target.value)}
+          />
+        </label>
       </div>
       <p className={styles.candidateCount} aria-live="polite">
         {visible.length} de {candidates.length} candidatos{pending ? ` · ${pending} com média final pendente no total` : ""}.
       </p>
       <div className={styles.participantList}>
-        {visible.map(({ id, participant, classId, position, grade }) => {
-          const labels = teacherHighlights[classId];
-          const key = participantKey(participant.name);
-          return <ParticipantDetails
-            key={id}
-            participant={participant}
-            group="fichas-candidatos"
-            subtitle={`Turma ${classId} · ${position === null ? "Média final pendente" : `${position}º geral · Média ${formatMetric(grade)}`}`}
-            labels={labels && Object.hasOwn(labels, key) ? labels[key] : []}
-          />;
-        })}
-        {!visible.length ? <p className={styles.empty}>Carregue o diário da turma para consultar os candidatos.</p> : null}
+        {visible.map(row => candidateCard(row, "fichas-candidatos"))}
+        {!visible.length ? <p className={styles.empty}>Nenhum candidato encontrado com esses filtros.</p> : null}
       </div>
     </section>
-  );
+  </>;
 }
 
-export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = {}, mode = "approvals", sharedGrades = false }: {
+export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = {}, mode = "approvals", priorities = {} }: {
   initialLoaded?: LoadedDiaries;
   teacherHighlights?: TeacherHighlights;
   mode?: "approvals" | "candidates";
-  sharedGrades?: boolean;
+  priorities?: Readonly<Record<string, number>>;
 }) {
   const candidateMode = mode === "candidates";
   const [selectedClass, setSelectedClass] = useState<ClassId>("C");
@@ -224,31 +273,10 @@ export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = 
     setReading(classId);
     setFeedback(null);
     try {
-      const { parseClassDiary, updateFinalGrades } = await import("@/lib/classDiary");
+      const { parseClassDiary } = await import("@/lib/classDiary");
       const results = parseClassDiary(new Uint8Array(await file.arrayBuffer()), classId, { asApprovalList: true });
-      if (candidateMode && !results.approved.length) throw new Error("O diário precisa ter ao menos um candidato.");
-      const existing = loaded[classId];
-      if (sharedGrades) {
-        const participants = results.participants.map(({ name, finalGrade }) => ({ name, finalGrade }));
-        const response = await fetch("/candidatos/notas", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ classId, participants }),
-        });
-        const data = await response.json().catch(() => null) as { initialLoaded?: LoadedDiaries; message?: string } | null;
-        if (!response.ok || !data?.initialLoaded) {
-          throw new Error(data?.message ?? "Não foi possível salvar as notas. Tente novamente.");
-        }
-        setLoaded(data.initialLoaded);
-      } else {
-        const updated = candidateMode && existing
-          ? { ...existing, results: updateFinalGrades(existing.results, results) }
-          : { filename, results };
-        setLoaded(previous => ({ ...previous, [classId]: updated }));
-      }
-      setFeedback({ classId, message: candidateMode && (sharedGrades || existing)
-        ? `Médias finais da Turma ${classId} atualizadas. Ranking recalculado.`
-        : `Diário da Turma ${classId} atualizado.`, error: false });
+      setLoaded(previous => ({ ...previous, [classId]: { filename, results } }));
+      setFeedback({ classId, message: `Diário da Turma ${classId} atualizado.`, error: false });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Não foi possível abrir o diário de classe.";
       setFeedback({ classId, message, error: true });
@@ -287,8 +315,8 @@ export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = 
         </nav>
         <div className={dashboard.sidebarBottom}>
           <ShieldCheck size={20} aria-hidden="true" />
-          <strong>Consulta dos diários</strong>
-          <p>Os arquivos selecionados são lidos no seu navegador.</p>
+          <strong>{candidateMode ? "Consulta das fichas" : "Consulta dos diários"}</strong>
+          <p>{candidateMode ? "Consulte as avaliações dos participantes no ranking geral." : "Os arquivos selecionados são lidos no seu navegador."}</p>
           <Link href="/home"><ArrowLeft size={16} aria-hidden="true" />Voltar ao Nexus</Link>
         </div>
       </aside>
@@ -306,24 +334,10 @@ export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = 
           </div>
         </header>
 
+        {candidateMode ? (
+          <Candidates loaded={loaded} teacherHighlights={teacherHighlights} priorities={priorities} />
+        ) : <>
         <input ref={input} hidden type="file" accept=".xlsx,.xlsm" onChange={loadDiary} aria-label="Selecionar diário de classe" />
-        {candidateMode ? <>
-          <section aria-labelledby="atualizar-notas">
-            <h2 id="atualizar-notas">Notas por turma</h2>
-            <p className={styles.source}>Use a coluna Média final. A importação atualiza as notas da turma e recalcula o ranking.
-              {sharedGrades ? " As notas salvas ficam disponíveis para toda a equipe com acesso ao painel." : ""}</p>
-            <div className={styles.candidateActions}>
-              {classIds.map(classId => (
-                <button key={classId} className={styles.uploadButton} type="button" disabled={reading !== null} onClick={() => chooseFile(classId)}>
-                  <Upload size={16} aria-hidden="true" />
-                  {reading === classId ? `Lendo Turma ${classId}…` : `${loaded[classId] ? "Atualizar notas" : "Carregar diário"} · Turma ${classId}`}
-                </button>
-              ))}
-            </div>
-            {feedback ? <p className={feedback.error ? styles.error : styles.feedback} role={feedback.error ? "alert" : "status"}>{feedback.message}</p> : null}
-          </section>
-          <Candidates loaded={loaded} teacherHighlights={teacherHighlights} />
-        </> : <>
         <div className={styles.classes} role="group" aria-label="Selecionar turma">
           {classIds.map(classId => (
             <button key={classId} type="button" aria-pressed={classId === selectedClass} onClick={() => setSelectedClass(classId)}>

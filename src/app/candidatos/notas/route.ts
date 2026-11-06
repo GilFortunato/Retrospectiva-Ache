@@ -1,5 +1,5 @@
 import { validOrigin } from "@/lib/acheAdminAuth";
-import { hasCandidateSession } from "@/lib/candidateAccess";
+import { currentPortalSession } from "@/lib/portalAuth";
 import { readCandidateProfiles, writeCandidateGrades } from "@/lib/candidateStore";
 import { validateFinalGrades, type FinalGradeEntry } from "@/lib/classDiary";
 
@@ -15,7 +15,8 @@ function isGradeEntry(value: unknown): value is FinalGradeEntry {
 
 export async function PATCH(request: Request) {
   if (!validOrigin(request)) return reply({ message: "Origem da solicitação inválida." }, 403);
-  if (!await hasCandidateSession()) {
+  const session = await currentPortalSession().catch(() => null);
+  if (!session || session.must_change_password) {
     return reply({ message: "Sua sessão expirou. Reabra o painel e tente novamente." }, 401);
   }
 

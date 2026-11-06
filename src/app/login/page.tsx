@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
+import PortalAccessForm from "@/components/acesso/PortalAccessForm";
+import { currentPortalSession } from "@/lib/portalAuth";
 
-// Keep old entry links working without asking visitors to authenticate.
-export default function LoginPage() {
-  redirect("/home");
+export default async function LoginPage() {
+  const session = await currentPortalSession().catch(() => null);
+  if (session) redirect(session.must_change_password ? "/trocar-senha" : "/home");
+  return <PortalAccessForm />;
 }

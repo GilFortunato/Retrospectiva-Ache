@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ArrowDown, ChevronDown, MessageCircle } from "lucide-react";
-import { localSurveyComments } from "./localComments";
-import survey from "./survey.json";
+import { ArrowDown, ArrowLeft, ArrowUpRight, Quote } from "lucide-react";
+import { redirect } from "next/navigation";
+import { currentPortalSession } from "@/lib/portalAuth";
+import { retrospectiveDatabase } from "@/lib/retrospectiveDatabase";
+import CycleComments from "./CycleComments";
+import localSurvey from "./survey.json";
 import styles from "./satisfaction.module.css";
 
 export const metadata: Metadata = {
@@ -10,33 +13,65 @@ export const metadata: Metadata = {
   description: "A jornada do Programa de Inclusão PcD pela voz de quem participou.",
 };
 
+type SurveyCycle = typeof localSurvey[number];
+
 const metrics = [
   { label: "Conteúdo", color: "#a0175d" },
   { label: "Recomendação", color: "#a55418" },
   { label: "Facilitação", color: "#19745b" },
 ];
 const chapters = [
-  { title: "O primeiro passo", story: "O início abriu espaço para refletir sobre a trajetória profissional e reconhecer competências que podem crescer com a prática." },
-  { title: "Aprender em conjunto", story: "No ciclo com maior volume de respostas, a clareza do conteúdo e a troca de experiências ganharam destaque nas falas." },
-  { title: "Acolhimento que dá confiança", story: "Os relatos conectaram um ambiente acessível à vontade de aprender, participar e se preparar para o mercado." },
-  { title: "Da reflexão à aplicação", story: "Trabalhos em grupo e temas ligados ao cotidiano ajudaram a transformar autoconhecimento em ação. Foi o pico de recomendação da série." },
-  { title: "Repertório para a profissão", story: "Cenários, cases e postura profissional aproximaram a formação da rotina de propagandista. Parte do aprendizado também foi levada para a vida pessoal." },
-  { title: "Conhecimento que fica", story: "Na última rodada disponível, os participantes falaram de uma nova visão de mercado e das conexões que criaram durante a formação." },
+  {
+    title: "Um novo olhar para a própria trajetória",
+    theme: "Autoconhecimento",
+    story: "No primeiro ciclo, os participantes já ligavam o conteúdo a situações do próprio trabalho. Reconhecer competências e identificar onde queriam melhorar deu um ponto de partida concreto à formação.",
+  },
+  {
+    title: "O grupo também ensina",
+    theme: "Troca de experiências",
+    story: "Na rodada com mais respostas, a clareza das explicações apareceu ao lado de outro elogio: aprender com quem estava na mesma jornada. Os relatos mostram o valor de ter espaço para perguntar, contribuir e trocar experiências.",
+  },
+  {
+    title: "Acolhimento que dá confiança",
+    theme: "Inclusão na prática",
+    story: "Os relatos citaram a estrutura acessível e o acolhimento como parte da experiência de aprender. Um depoimento ligou esse ambiente à motivação para contribuir com a equipe e aplicar o que aprendeu.",
+  },
+  {
+    title: "Quando o aprendizado vira prática",
+    theme: "Aplicação no dia a dia",
+    story: "Os trabalhos em grupo e a conexão com o dia a dia deram forma ao que vinha sendo discutido desde o início. Foi o ciclo com o maior NPS, com 79 promotores em 81 respostas.",
+    process: "Uma sugestão pediu ampliar o encaminhamento dos participantes para vagas após a formação.",
+  },
+  {
+    title: "Mais repertório para atuar no mercado",
+    theme: "Prática profissional",
+    story: "Cenários, casos e discussões sobre postura profissional aproximaram as aulas da rotina de propagandista. Houve quem enxergasse aplicação também fora do trabalho, em conversas e situações da vida pessoal.",
+    process: "Apareceram pedidos por um cronograma mais claro e por informações concretas sobre a abertura de vagas e as próximas etapas.",
+  },
+  {
+    title: "Conhecimento e vínculos que ficam",
+    theme: "Continuidade",
+    story: "Na última coleta, os participantes destacaram uma nova visão do mercado e a rede de colegas que se formou. A facilitação recebeu nota 9 ou 10 de 65 das 69 respostas, enquanto o NPS da recomendação caiu em relação ao ciclo anterior.",
+    process: "Na reta final, alguns participantes ainda aguardavam informações sobre datas, vagas e as etapas do processo seletivo.",
+  },
 ];
-const processNotes: Readonly<Record<number, string>> = {
-  4: "Uma resposta pediu um prazo menor, sem especificar a etapa. Outra sugeriu ampliar o encaminhamento para vagas após a formação.",
-  5: "Algumas respostas pediram um cronograma mais claro e informações sobre a abertura de vagas e as próximas etapas da seleção.",
-  6: "Perto do fim da formação, houve relatos de falta de datas, informações sobre vagas e retorno sobre as etapas do processo seletivo.",
-};
 
-const count = survey.reduce((sum, cycle) => sum + cycle.responses, 0);
 const rating = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const npsFormat = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" });
 const day = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
-const average = (cycle: typeof survey[number], metric: number) => cycle.sums[metric] / cycle.responses;
-const totalAverage = (metric: number) => survey.reduce((sum, cycle) => sum + cycle.sums[metric], 0) / count;
+const average = (cycle: SurveyCycle, metric: number) => cycle.sums[metric] / cycle.responses;
+const npsOf = (cycle: SurveyCycle) => 100 * (cycle.high[1] - cycle.detractors) / cycle.responses;
 
-function EvolutionChart() {
+async function readCycles() {
+  if (!process.env.CANDIDATOS_DATABASE_URL) return localSurvey;
+  const { rows } = await retrospectiveDatabase().query<{ summary: SurveyCycle }>(
+    "SELECT summary FROM survey_cycles ORDER BY cycle",
+  );
+  if (rows.length !== chapters.length) throw new Error("Pesquisa de satisfação incompleta.");
+  return rows.map(row => row.summary);
+}
+
+function EvolutionChart({ cycles }: { cycles: SurveyCycle[] }) {
   const x = (index: number) => 58 + index * 110;
   const y = (value: number) => 22 + (10 - value) * 165;
   return (
@@ -46,7 +81,7 @@ function EvolutionChart() {
         <p>Notas de 0 a 10. O gráfico amplia a faixa de 9 a 10 para mostrar as variações.</p>
       </figcaption>
       <div className={styles.chartScroll} tabIndex={0} role="region" aria-label="Gráfico de evolução das notas">
-        <svg viewBox="0 0 650 220" role="img" aria-label="As três médias ficaram acima de 9,5. A recomendação atingiu o pico no ciclo 4 e caiu até o ciclo 6. As notas exatas aparecem nos cartões de cada ciclo.">
+        <svg viewBox="0 0 650 220" role="img" aria-label="Médias de conteúdo, recomendação e facilitação por ciclo. Os valores também aparecem nos capítulos.">
           {[10, 9.75, 9.5, 9.25, 9].map(value => (
             <g key={value}>
               <line x1="54" y1={y(value)} x2="616" y2={y(value)} stroke="#e6dce2" />
@@ -55,13 +90,13 @@ function EvolutionChart() {
           ))}
           {metrics.map(({ label, color }, metric) => (
             <g key={label}>
-              <polyline points={survey.map((cycle, i) => `${x(i)},${y(average(cycle, metric))}`).join(" ")} fill="none" stroke={color} strokeWidth="3" strokeDasharray={metric === 1 ? "7 4" : undefined} />
-              {survey.map((cycle, i) => <circle key={i} cx={x(i)} cy={y(average(cycle, metric))} r={metric === 1 ? 3 : 4} fill={color}>
+              <polyline points={cycles.map((cycle, i) => `${x(i)},${y(average(cycle, metric))}`).join(" ")} fill="none" stroke={color} strokeWidth="3" strokeDasharray={metric === 1 ? "7 4" : undefined} />
+              {cycles.map((cycle, i) => <circle key={i} cx={x(i)} cy={y(average(cycle, metric))} r={metric === 1 ? 3 : 4} fill={color}>
                 <title>{`Ciclo ${i + 1} · ${label} ${rating.format(average(cycle, metric))}`}</title>
               </circle>)}
             </g>
           ))}
-          {survey.map((_, i) => <text key={i} x={x(i)} y="209" textAnchor="middle">Ciclo {i + 1}</text>)}
+          {cycles.map((_, i) => <text key={i} x={x(i)} y="209" textAnchor="middle">Ciclo {i + 1}</text>)}
         </svg>
       </div>
       <ul className={styles.legend}>
@@ -72,80 +107,110 @@ function EvolutionChart() {
 }
 
 export default async function SatisfactionPage() {
-  const comments = await localSurveyComments();
+  const session = await currentPortalSession().catch(() => null);
+  if (!session) redirect("/login");
+  if (session.must_change_password) redirect("/trocar-senha");
+
+  const cycles = await readCycles().catch(() => null);
+  if (!cycles) {
+    return <main className={styles.page}>
+      <Link href="/home">Voltar à retrospectiva</Link>
+      <h1>Satisfação</h1>
+      <p role="alert">Não foi possível carregar a pesquisa. Recarregue a página para tentar novamente.</p>
+    </main>;
+  }
+
+  const count = cycles.reduce((sum, cycle) => sum + cycle.responses, 0);
+  const promoters = cycles.reduce((sum, cycle) => sum + cycle.high[1], 0);
+  const detractors = cycles.reduce((sum, cycle) => sum + cycle.detractors, 0);
+  const totalNps = 100 * (promoters - detractors) / count;
+  const peakNps = Math.max(...cycles.map(npsOf));
+  const totalAverage = (metric: number) => cycles.reduce((sum, cycle) => sum + cycle.sums[metric], 0) / count;
+
   return (
     <main className={styles.page}>
       <nav className={styles.nav} aria-label="Navegação da retrospectiva">
         <Link href="/home"><ArrowLeft size={16} aria-hidden="true" /> Voltar à retrospectiva</Link>
+        <span>Programa de Inclusão PcD Aché</span>
       </nav>
+
       <header className={styles.hero}>
-        <p className={styles.kicker}>Retrospectiva Aché · Pesquisa de satisfação</p>
-        <h1>Uma formação contada por quem a viveu.</h1>
-        <p className={styles.lead}>Do primeiro encontro à aplicação no dia a dia, as avaliações e os depoimentos mostram o que marcou a jornada de inclusão e formação de propagandistas.</p>
-        <div className={styles.heroStats}>
-          <div><strong>{count}</strong><span>respostas válidas</span></div>
-          <div><strong>{survey.length}</strong><span>ciclos de aula analisados</span></div>
-          <div><strong>{rating.format(totalAverage(2))}<small> / 10</small></strong><span>média em facilitação</span></div>
+        <div className={styles.heroStory}>
+          <p className={styles.kicker}>Retrospectiva Aché · Pesquisa de satisfação</p>
+          <h1>Da confiança à prática de ser <em>propagandista.</em></h1>
+          <p className={styles.lead}>Seis ciclos de formação mostram como o grupo ganhou confiança, levou os conteúdos para a prática e criou vínculos que continuaram além das aulas.</p>
+          <a href="#jornada" className={styles.cta}>Percorrer os seis ciclos <ArrowDown size={16} aria-hidden="true" /></a>
         </div>
-        <a href="#jornada" className={styles.cta}>Percorrer a jornada <ArrowDown size={16} /></a>
+        <aside className={styles.heroScore} aria-label="NPS consolidado da pesquisa">
+          <span>NPS consolidado</span>
+          <strong>{npsFormat.format(totalNps)}</strong>
+          <p>{promoters} respostas promotoras em {count} avaliações de recomendação</p>
+          <dl>
+            <div><dt>Ciclos de aula</dt><dd>{cycles.length}</dd></div>
+            <div><dt>Respostas válidas</dt><dd>{count}</dd></div>
+          </dl>
+        </aside>
       </header>
 
-      <section className={styles.overview} aria-labelledby="leitura">
-        <div>
-          <p className={styles.kicker}>A experiência em números</p>
-          <h2 id="leitura">A qualidade se sustentou ao longo dos ciclos</h2>
-          <p>Clareza na facilitação, conteúdos ligados à prática e um espaço acolhedor para trocar experiências apareceram entre os elogios. O ciclo 4 reuniu as melhores médias de facilitação e recomendação. No ciclo 6, a recomendação recuou para {rating.format(average(survey[5], 1))}, enquanto a facilitação seguiu bem avaliada, com {rating.format(average(survey[5], 2))}.</p>
-          <dl className={styles.means}>
-            {metrics.map(({ label, color }, i) => <div key={label} style={{ borderLeftColor: color }}>
-              <dt>{label}</dt><dd>{rating.format(totalAverage(i))}<small> / 10</small>
-                <span>{survey.reduce((sum, cycle) => sum + cycle.high[i], 0)} notas de 9 ou 10</span>
-              </dd>
-            </div>)}
-          </dl>
-        </div>
+      <section className={styles.overview} aria-labelledby="nps-ciclos">
+        <p className={styles.kicker}>A evolução da recomendação</p>
+        <h2 id="nps-ciclos">NPS ciclo a ciclo</h2>
+        <p className={styles.sectionLead}>O ciclo 4 marcou o ponto mais alto da recomendação. Na reta final, o NPS recuou, enquanto as avaliações da facilitação permaneceram altas.</p>
+        <ol className={styles.npsGrid}>
+          {cycles.map((cycle, i) => {
+            const peak = npsOf(cycle) === peakNps;
+            return <li key={cycle.start}>
+              <a href={`#ciclo-${i + 1}`} className={peak ? styles.peak : undefined}>
+                <span className={styles.npsLabel}>Ciclo {i + 1} <ArrowUpRight size={15} aria-hidden="true" /></span>
+                <strong>{npsFormat.format(npsOf(cycle))}</strong>
+                <span className={styles.npsFoot}>{peak ? "Pico da série" : `${cycle.responses} respostas`}</span>
+              </a>
+            </li>;
+          })}
+        </ol>
+        <p className={styles.method}>O NPS é a diferença entre a porcentagem de promotores (notas 9 e 10) e a de detratores (notas 0 a 6). Notas 7 e 8 são neutras.</p>
+        <dl className={styles.means}>
+          {metrics.map(({ label, color }, i) => <div key={label} style={{ borderLeftColor: color }}>
+            <dt>Média de {label.toLocaleLowerCase("pt-BR")}</dt>
+            <dd>{rating.format(totalAverage(i))}<small> / 10</small></dd>
+          </div>)}
+        </dl>
       </section>
 
       <section id="jornada" className={styles.journey} aria-labelledby="jornada-titulo">
         <p className={styles.kicker}>Seis capítulos, muitas vozes</p>
         <h2 id="jornada-titulo">O que ficou de cada ciclo</h2>
-        <p>Os ciclos têm cinco dias de aula como referência. As datas abaixo correspondem à coleta das respostas de cada rodada.</p>
+        <p className={styles.sectionLead}>Cada ciclo toma cinco dias de aula como referência. As datas nos cartões indicam o período de coleta das respostas.</p>
         <ol className={styles.timeline}>
-          {survey.map((cycle, i) => {
-            const groups = comments[i] ?? [];
-            const commentCount = groups.reduce((sum, group) => sum + group.comments.length, 0);
-            const promoters = cycle.high[1];
-            const passives = cycle.responses - promoters - cycle.detractors;
-            const nps = 100 * (promoters - cycle.detractors) / cycle.responses;
+          {cycles.map((cycle, i) => {
+            const chapter = chapters[i];
+            const cycleNumber = i + 1;
+            const passives = cycle.responses - cycle.high[1] - cycle.detractors;
             return (
-              <li key={cycle.start} className={styles.chapter}>
-                <div className={styles.number} aria-hidden="true">{String(i + 1).padStart(2, "0")}</div>
-                <div>
-                  <p className={styles.kicker}>Ciclo {i + 1} · {cycle.responses} respostas</p>
-                  <h3>{chapters[i].title}</h3>
-                  <p className={styles.collection}>Coleta de {day.format(new Date(cycle.start))} a {day.format(new Date(cycle.end))}</p>
-                  <p>{chapters[i].story}</p>
-                  <dl className={styles.cycleScores}>
-                    {metrics.map(({ label, color }, m) => <div key={label}><dt>{label}</dt><dd style={{ color }}>{rating.format(average(cycle, m))}</dd></div>)}
-                    <div><dt>NPS</dt><dd>{npsFormat.format(nps)}</dd></div>
-                  </dl>
-                  <p className={styles.collection}>{promoters} promotores · {passives} neutros · {cycle.detractors} detratores</p>
-                  <div className={styles.quotes}>
-                    {cycle.quotes.map(quote => <blockquote key={quote}><MessageCircle size={17} aria-hidden="true" /><p>“{quote}”</p></blockquote>)}
+              <li id={`ciclo-${cycleNumber}`} key={cycle.start} className={styles.chapter}>
+                <div className={styles.chapterHeader}>
+                  <div className={styles.chapterStory}>
+                    <p className={styles.kicker}>Ciclo {String(cycleNumber).padStart(2, "0")} · {chapter.theme}</p>
+                    <h3>{chapter.title}</h3>
+                    <p className={styles.collection}>Coleta de {day.format(new Date(cycle.start))} a {day.format(new Date(cycle.end))} · {cycle.responses} respostas</p>
+                    <p>{chapter.story}</p>
                   </div>
-                  {processNotes[i + 1] ? <aside className={styles.processNote}>
-                    <h4>Cronograma e próximos passos</h4>
-                    <p>{processNotes[i + 1]}</p>
-                  </aside> : null}
-                  {commentCount ? <details className={styles.allComments}>
-                    <summary>Ver todos os comentários ({commentCount}) <ChevronDown size={16} aria-hidden="true" /></summary>
-                    {groups.filter(group => group.comments.length).map(({ label, comments }) => (
-                      <div key={label} className={styles.commentGroup}>
-                        <h4>{label}</h4>
-                        <ul>{comments.map((comment, index) => <li key={index}>{comment}</li>)}</ul>
-                      </div>
-                    ))}
-                  </details> : null}
+                  <div className={styles.chapterScore}>
+                    <div><span>NPS do ciclo</span><strong>{npsFormat.format(npsOf(cycle))}</strong></div>
+                    <p>{cycle.high[1]} promotores · {passives} neutros · {cycle.detractors} detratores</p>
+                    <dl className={styles.cycleScores}>
+                      {metrics.map(({ label, color }, m) => <div key={label}><dt>{label}</dt><dd style={{ color }}>{rating.format(average(cycle, m))}</dd></div>)}
+                    </dl>
+                  </div>
                 </div>
+                <div className={styles.quotes}>
+                  {cycle.quotes.map(quote => <blockquote key={quote}><Quote size={19} aria-hidden="true" /><p>“{quote}”</p></blockquote>)}
+                </div>
+                {chapter.process ? <aside className={styles.processNote}>
+                  <h4>Cronograma e próximos passos</h4>
+                  <p>{chapter.process}</p>
+                </aside> : null}
+                <CycleComments cycle={cycleNumber} count={cycle.commentCount} />
               </li>
             );
           })}
@@ -153,7 +218,7 @@ export default async function SatisfactionPage() {
       </section>
 
       <section className={styles.evolution} aria-label="Síntese das avaliações">
-        <EvolutionChart />
+        <EvolutionChart cycles={cycles} />
       </section>
     </main>
   );

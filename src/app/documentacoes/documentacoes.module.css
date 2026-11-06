@@ -1,0 +1,21 @@
+.content {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: clamp(32px, 6vw, 86px) clamp(20px, 6vw, 70px);
+}
+.content h1 {
+  margin: .25rem 0 .75rem;
+  font-size: clamp(2.25rem, 6vw, 4.4rem);
+  line-height: 1.1;
+  letter-spacing: -.045em;
+}
+.content h1 + p { max-width: 58ch; color: var(--muted); line-height: 1.6; }
+.resources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: 16px;
+  margin-top: 32px;
+}
+.resources .resource { width: 100%; max-width: 245px; margin-inline: auto; padding-inline: 18px; }
+.resources .resource span { max-width: 115px; }
+.resource:focus-visible { outline: 2px solid var(--magenta); outline-offset: 3px; }

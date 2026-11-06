@@ -1,21 +1,8 @@
 import "server-only";
-import { attachDatabasePool } from "@vercel/functions";
-import { Pool } from "pg";
+import { retrospectiveDatabase } from "@/lib/retrospectiveDatabase";
 import type { LoadedDiaries } from "@/components/aprovados/ApprovalPanel";
 import type { TeacherHighlights } from "@/lib/approvalRanking";
 import { summarizePerformance, type ClassId, type DiaryParticipant } from "@/lib/classDiary";
-
-let pool: Pool | undefined;
-
-function database() {
-  const connectionString = process.env.CANDIDATOS_DATABASE_URL;
-  if (!connectionString) throw new Error("Banco de candidatos indisponível.");
-  if (!pool) {
-    pool = new Pool({ connectionString, max: 4, connectionTimeoutMillis: 5000 });
-    attachDatabasePool(pool);
-  }
-  return pool;
-}
 
 type ProfileRow = {
   class_id: ClassId;
@@ -26,7 +13,7 @@ type ProfileRow = {
 };
 
 export async function readCandidateProfiles() {
-  const { rows } = await database().query<ProfileRow>(
+  const { rows } = await retrospectiveDatabase().query<ProfileRow>(
     "SELECT class_id, candidate_key, profile, final_grade, teacher_highlights FROM candidate_profiles",
   );
   const initialLoaded: LoadedDiaries = {};
@@ -47,7 +34,7 @@ export async function readCandidateProfiles() {
 
 export async function writeCandidateGrades(classId: ClassId, grades: ReadonlyMap<string, number>) {
   const payload = JSON.stringify(Array.from(grades, ([candidate_key, final_grade]) => ({ candidate_key, final_grade })));
-  const result = await database().query(
+  const result = await retrospectiveDatabase().query(
     `WITH incoming AS (
       SELECT candidate_key, final_grade
       FROM jsonb_to_recordset($2::jsonb) AS entry(candidate_key text, final_grade double precision)

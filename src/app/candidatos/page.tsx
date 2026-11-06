@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import ApprovalPanel from "@/components/aprovados/ApprovalPanel";
-import CandidateAccess from "@/components/aprovados/CandidateAccess";
-import { hasCandidateSession } from "@/lib/candidateAccess";
+import { redirect } from "next/navigation";
+import { currentPortalSession } from "@/lib/portalAuth";
 import { readCandidateProfiles } from "@/lib/candidateStore";
 import { localApprovalData } from "@/lib/localApprovalData";
 import { isLocalDevelopmentRequest } from "@/lib/localRequest";
+import { recommendationPriorities } from "@/lib/recommendationPriorities";
 
 export const metadata: Metadata = {
   title: "Candidatos | Retrospectiva Aché",
@@ -13,14 +14,17 @@ export const metadata: Metadata = {
 };
 
 export default async function CandidatesPage() {
+  const session = await currentPortalSession();
+  if (!session) redirect("/login");
+  if (session.must_change_password) redirect("/trocar-senha");
   if (!process.env.CANDIDATOS_DATABASE_URL && await isLocalDevelopmentRequest()) {
-    return <ApprovalPanel mode="candidates" {...await localApprovalData()} />;
+    const data = await localApprovalData();
+    return <ApprovalPanel mode="candidates" priorities={recommendationPriorities(data.teacherHighlights)} {...data} />;
   }
-  if (!await hasCandidateSession()) return <CandidateAccess />;
 
   try {
     const data = await readCandidateProfiles();
-    return <ApprovalPanel mode="candidates" sharedGrades {...data} />;
+    return <ApprovalPanel mode="candidates" priorities={recommendationPriorities(data.teacherHighlights)} {...data} />;
   } catch {
     return <p role="alert">Não foi possível carregar as fichas. Recarregue a página para tentar novamente.</p>;
   }

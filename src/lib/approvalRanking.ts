@@ -1,7 +1,27 @@
 import type { ClassId, DiaryParticipant } from "@/lib/classDiary";
+import { participantKey } from "@/lib/participantName";
 
 export type TeacherHighlights = Partial<Record<ClassId, Record<string, readonly string[]>>>;
 type GradedParticipant = Pick<DiaryParticipant, "name" | "finalGrade" | "weeklyGrades">;
+
+export function orderTeacherRecommendations<T extends { classId: ClassId; name: string }>(
+  rankedCandidates: readonly T[],
+  highlights: TeacherHighlights,
+  priorities: Readonly<Record<string, number>>,
+) {
+  const recommendations = rankedCandidates.flatMap(candidate => {
+    const name = participantKey(candidate.name);
+    const entries = highlights[candidate.classId];
+    const labels = entries && Object.hasOwn(entries, name) ? entries[name] : [];
+    if (!labels.length) return [];
+    return [{ ...candidate, priority: priorities[`${candidate.classId}:${name}`] ?? null }];
+  });
+
+  return {
+    featured: recommendations.filter(row => row.priority !== null).sort((a, b) => a.priority! - b.priority!),
+    others: recommendations.filter(row => row.priority === null),
+  };
+}
 
 export function rankApprovals(participants: readonly GradedParticipant[]) {
   const usesFinalGrade = participants.some(person => person.finalGrade !== null);

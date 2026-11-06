@@ -73,6 +73,12 @@
 
 .participantList { display: grid; gap: 8px; }
 .candidateActions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.candidateFilters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
 .candidateCount { margin: 0 0 12px; color: var(--bi-muted); }
 .candidateSubtitle { display: block; margin-top: 3px; color: var(--bi-muted); font-weight: 500; }
 .classFilter { display: grid; gap: 4px; font-size: 12px; font-weight: 600; }
@@ -84,6 +90,12 @@
   background: white;
   color: var(--bi-ink);
   font: inherit;
+}
+.candidateFilters :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  font-size: 14px;
 }
 
 .participantDetails {
@@ -110,6 +122,26 @@
 .participantDetails[open] { background: #fcfafb; }
 .participantDetails[open] summary { color: var(--bi-brand); border-bottom: 1px solid var(--bi-line); }
 .participantDetails[open] summary svg { transform: rotate(180deg); }
+
+.recommendationHighlights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.priorityCandidate { background: #fff3f8; border-color: #d98caf; }
+.priorityBadge {
+  display: block;
+  width: fit-content;
+  margin-bottom: 6px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: #f9e3ef;
+  color: #8c164c;
+  font-size: 11px;
+}
+.moreRecommendations > summary { color: var(--bi-brand); }
 
 .rankingDetails { margin-bottom: 14px; }
 .rankingDetails summary { color: var(--bi-brand); }
@@ -166,6 +198,8 @@
 .error { background: #fff2f1; color: #922b24; }
 
 @media (max-width: 580px) {
+  .recommendationHighlights { grid-template-columns: minmax(0, 1fr); }
+  .candidateFilters { grid-template-columns: minmax(0, 1fr); }
   .classes { gap: 6px; }
   .classes button { align-content: flex-start; padding: 10px; gap: 4px; }
   .classes small { width: 100%; }
