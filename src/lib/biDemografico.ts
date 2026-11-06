@@ -1,4 +1,5 @@
 import snapshot from "@/data/bi-demografico.json";
+import type { ClassId } from "@/lib/classDiary";
 
 export type Distribution = { label: string; count: number }[];
 export type BiSummary = {
@@ -15,6 +16,14 @@ export type BiDataset = {
   source: { fileName: string; sheet: string; referenceDate: string; minimumCohort: number };
   filters: { regions: string[]; states: { value: string; region: string }[]; spRegions: string[] };
   slices: Record<string, BiSummary>;
+};
+
+export type BiApprovals = {
+  data: BiDataset | null;
+  classes: ClassId[];
+  partial: boolean;
+  unmatched: number;
+  error?: string;
 };
 
 export const biData = snapshot as BiDataset;
@@ -61,7 +70,7 @@ export function csvSummary(summary: BiSummary, selection: string, dataset: BiDat
       rows.push([], [names[dimension], "Participantes", "% do recorte"]);
       values.forEach(item => rows.push([item.label, item.count, percent(item.count, summary.total)]));
     }
-  } else rows.push(["Detalhamento", "Recorte inferior a 5 participantes; exibição limitada ao total."]);
+  } else rows.push(["Detalhamento", "Para proteger recortes pequenos, exibição limitada ao total."]);
   const escape = (value: string | number) => {
     const text = String(value);
     const safe = /^[=+\-@]/.test(text) ? "'" + text : text;

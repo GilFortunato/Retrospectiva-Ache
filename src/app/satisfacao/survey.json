@@ -1,0 +1,116 @@
+[
+  {
+    "responses": 95,
+    "start": "2026-09-16",
+    "end": "2026-09-24",
+    "sums": [
+      928,
+      932,
+      932
+    ],
+    "high": [
+      90,
+      90,
+      90
+    ],
+    "quotes": [
+      "Foi uma semana de muita oportunidade de conhecimento e de melhoria nas competências comportamentais.",
+      "Muito enriquecedor e importante para ajustar alguns aspectos na minha atuação profissional."
+    ]
+  },
+  {
+    "responses": 107,
+    "start": "2026-09-24",
+    "end": "2026-10-01",
+    "sums": [
+      1044,
+      1046,
+      1055
+    ],
+    "high": [
+      98,
+      99,
+      102
+    ],
+    "quotes": [
+      "Foi bem gratificante trilhar junto com todos e acredito muito nesse projeto possa mudar a vida de muitos.",
+      "Conteúdo muito explicativo e de facil compreensão"
+    ]
+  },
+  {
+    "responses": 74,
+    "start": "2026-10-01",
+    "end": "2026-10-07",
+    "sums": [
+      723,
+      724,
+      727
+    ],
+    "high": [
+      70,
+      71,
+      71
+    ],
+    "quotes": [
+      "O acolhimento, a estrutura acessível e o aprendizado me deixaram preparado e muito motivado para fazer a diferença e crescer junto com a equipe.",
+      "Excelente,a minha bagagem para o mercado está bem recheada de novos conhecimentos"
+    ]
+  },
+  {
+    "responses": 81,
+    "start": "2026-10-08",
+    "end": "2026-10-15",
+    "sums": [
+      791,
+      800,
+      799
+    ],
+    "high": [
+      77,
+      79,
+      80
+    ],
+    "quotes": [
+      "Fui estimulada a desenvolver meus pontos fracos e potencializar os fortes",
+      "Foi ótimo. Os trabalhos em grupo, clareza das informações e a relevância dos assuntos no dia a dia."
+    ]
+  },
+  {
+    "responses": 66,
+    "start": "2026-10-15",
+    "end": "2026-10-19",
+    "sums": [
+      636,
+      644,
+      644
+    ],
+    "high": [
+      60,
+      60,
+      61
+    ],
+    "quotes": [
+      "Uma semana de muitas informações técnicas, atitudes profissional, postura, desenho de cenários e cases de possíveis situações do cotidiano.",
+      "O conteudo do curso transpassa uma formação de carreira, são temas que funcionam para a vida pessoal também."
+    ]
+  },
+  {
+    "responses": 69,
+    "start": "2026-10-22",
+    "end": "2026-10-26",
+    "sums": [
+      665,
+      657,
+      675
+    ],
+    "high": [
+      60,
+      56,
+      65
+    ],
+    "quotes": [
+      "Me senti acolhido, incluído e aprendendo outros detalhes que o grupo como um todo contribuiu. Fizemos amigos que se ajudam.",
+      "Muito bom, novas experiencias, novos conhecimentos, outra visao de mercado."
+    ]
+  }
+]

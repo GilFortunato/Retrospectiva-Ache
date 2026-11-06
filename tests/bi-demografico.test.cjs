@@ -18,7 +18,9 @@ function loadTs(relative) {
   return loaded.exports;
 }
 const { biData, getSummary, normalizeFilters, csvSummary, emptyFilters } = loadTs("src/lib/biDemografico.ts");
-const { parseDemographicWorkbook } = loadTs("src/lib/biWorkbook.ts");
+const { parseDemographicWorkbook, parseDemographicDashboard } = loadTs("src/lib/biWorkbook.ts");
+const { rankApprovals, rankByGrade } = loadTs("src/lib/approvalRanking.ts");
+const { updateFinalGrades } = loadTs("src/lib/classDiary.ts");
 
 function workbook(count, duplicate = false) {
   const escape = value => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -90,12 +92,80 @@ test("duplicate participants stop the import without disclosing identities", () 
   assert.throws(() => parseDemographicWorkbook(workbook(6, true)), /participantes repetidos/);
 });
 
+test("the approved recorte deduplicates names, retains unmatched people and protects small complementary groups", () => {
+  const names = [" PESSÓA  DE TESTE 1 ", "Pessoa de teste 1", ...Array.from({ length: 5 }, (_, i) => `Pessoa de teste ${i + 2}`), "Pessoa sem correspondência"];
+  const result = parseDemographicDashboard(workbook(12), names);
+  assert.equal(result.data.slices.all.total, 12);
+  assert.equal(result.unmatched, 1);
+  assert.equal(result.approved.slices.all.total, 7);
+  assert.equal(result.approved.slices.all.distributions.gender.find(item => item.label === "Não informado").count, 1);
+  const capital = getSummary({ ...emptyFilters, spRegion: "Capital" }, result.approved);
+  assert.equal(capital.total, 6);
+  assert.equal(capital.restricted, false);
+  assert.equal(capital.distributions.gender.reduce((sum, item) => sum + item.count, 0), 6);
+  assert.doesNotMatch(JSON.stringify(result), /Pessoa de teste|Pessoa sem correspondência/);
+
+  const almostEveryone = parseDemographicDashboard(workbook(7), names).approved.slices.all;
+  assert.equal(almostEveryone.total, 7);
+  assert.equal(almostEveryone.restricted, true);
+  assert.equal(almostEveryone.distributions, null);
+});
+
 test("CSV export protects spreadsheet cells from formula injection", () => {
   const summary = structuredClone(biData.slices.all);
   summary.distributions.education[0].label = '=HYPERLINK("https://example.invalid")';
   const csv = csvSummary(summary, "Brasil");
   assert.match(csv, /'\=HYPERLINK/);
   assert.equal(csv.startsWith("\uFEFF"), true);
+});
+
+test("verified name aliases merge a unique demographic record and preserve exact matches", () => {
+  const names = Array.from({ length: 6 }, (_, i) => `Pessoa de teste ${i + 1}`);
+  const result = parseDemographicDashboard(workbook(12), [...names, "Grafia alternativa", "Sem registro"], {
+    "Grafia alternativa": " PESSÔA  DE TESTE 1 ",
+    "Pessoa de teste 6": "Pessoa de teste 2",
+    "Sem registro": "Registro ausente",
+  });
+  assert.equal(result.approved.slices.all.total, 7);
+  assert.equal(result.approved.slices["sp:Capital"].total, 6);
+  assert.equal(result.unmatched, 1);
+  assert.doesNotMatch(JSON.stringify(result), /Grafia alternativa|Pessoa de teste|Sem registro/);
+});
+
+test("the approved ranking compares common weeks, shares tied positions and uses final grades when available", () => {
+  const people = [
+    { name: "Ana", finalGrade: null, weeklyGrades: [{ week: 1, grade: 9 }, { week: 2, grade: 4 }] },
+    { name: "Beatriz", finalGrade: null, weeklyGrades: [{ week: 1, grade: 9 }] },
+    { name: "Carlos", finalGrade: null, weeklyGrades: [{ week: 1, grade: 7 }] },
+    { name: "Daniel", finalGrade: null, weeklyGrades: [] },
+  ];
+  const weekly = rankApprovals(people);
+  assert.deepEqual(weekly.weeks, [1]);
+  assert.deepEqual(weekly.rows.map(row => [row.name, row.grade, row.position]), [
+    ["Ana", 9, 1], ["Beatriz", 9, 1], ["Carlos", 7, 3], ["Daniel", null, null],
+  ]);
+
+  const final = rankApprovals([{ ...people[0], finalGrade: 8 }, ...people.slice(1)]);
+  assert.equal(final.usesFinalGrade, true);
+  assert.deepEqual(final.rows.map(row => [row.grade, row.position]), [[8, 1], [null, null], [null, null], [null, null]]);
+});
+
+test("updating class grades re-ranks candidates without replacing their profiles", () => {
+  const ana = { name: "Ana Silva", finalGrade: null, teacherComment: "Comentário original" };
+  const bruno = { name: "Bruno", finalGrade: null };
+  const current = { approved: [ana, bruno], participants: [ana, bruno] };
+  const incoming = { participants: [{ name: "ANA  SILVA", finalGrade: 9, teacherComment: null }] };
+  const updated = updateFinalGrades(current, incoming);
+  assert.deepEqual(updated.approved, [{ ...ana, finalGrade: 9 }, bruno]);
+  assert.equal(updated.performance.finalGrade.sum, 9);
+  assert.equal(updated.performance.finalGrade.count, 1);
+  assert.equal(ana.finalGrade, null);
+  assert.throws(() => updateFinalGrades(current, { participants: [...incoming.participants, { name: "Outro", finalGrade: 10 }] }), /não correspondem/);
+  const ranking = rankByGrade([
+    ...updated.approved.map(person => ({ name: person.name, grade: person.finalGrade, classId: "A" })),
+    { name: "Caio", grade: 9, classId: "B" },
+  ]);
+  assert.deepEqual(ranking.map(row => [row.classId, row.position]), [["A", 1], ["B", 1], ["A", null]]);
 });
 
 test("the refresh API re-reads the workbook on each call with no-store responses", async () => {

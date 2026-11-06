@@ -40,9 +40,19 @@ npm start
 
 ## BI demográfico
 
-O painel `/bi` também está acessível pelo Nexus. Inclui filtros por região do Brasil, UF e região de São Paulo, indicadores do recorte, gráficos demográficos e de formação, exportação CSV, impressão e links que preservam o filtro selecionado.
+O painel `/bi` também está acessível pelo Nexus. Inclui o filtro de público (Geral ou Aprovados), filtros por região do Brasil, UF e região de São Paulo, indicadores do recorte, gráficos demográficos e de formação, exportação CSV, impressão e links que preservam os filtros selecionados.
 
 Configure `BI_DRIVE_FILE_ID` no ambiente da aplicação para ler o arquivo XLSX/XLSM do Drive que contém a aba **Base Tratada**. O arquivo precisa permitir leitura por link. O identificador é usado apenas no servidor e não aparece no navegador. Não há login Google para visitantes nem banco de dados.
+
+Para teste local, `BI_WORKBOOK_PATH` aceita o caminho absoluto da planilha demográfica e tem prioridade sobre o Drive. Configure `BI_DIARIO_TURMA_A`, `BI_DIARIO_TURMA_B` e `BI_DIARIO_TURMA_C` com os caminhos absolutos das listas de aprovados ou com IDs de arquivos que o servidor já pode ler no Drive. Cada lista deve conter uma coluna **Nome**, **Nome completo**, **Participante** ou **Name**. O filtro **Aprovados** inclui todos os nomes distintos dessas listas. Quando falta uma correspondência única na base demográfica, a pessoa entra no total com os dados demográficos como não informados. O painel consulta as fontes novamente ao atualizar os dados.
+
+Para variações de nome verificadas, a variável de servidor `BI_APROVADOS_NOMES_EQUIVALENTES` aceita um objeto JSON que associa cada grafia da lista à grafia da base demográfica. A correspondência direta tem prioridade e a grafia alternativa exige um único registro na base.
+
+Em `/aprovados`, selecione a turma e abra a ficha pelo nome. A ficha lê a **Média final**, as avaliações semanais e as **Observações finais** do diário. Os diários configurados com caminhos locais são carregados ao abrir em localhost no modo de desenvolvimento. Use `npm run dev -- --hostname 127.0.0.1` para a consulta local. A opção **Carregar lista** lê a planilha selecionada no navegador.
+
+O **Ranking por nota** usa as médias finais registradas na turma. Enquanto a turma aguarda o lançamento das médias finais, a posição usa as avaliações semanais em comum. O ambiente local lê os destaques dos professores da variável `BI_DESTAQUES_DOCENTES`, um objeto JSON por turma com os nomes dos participantes e as respectivas listas de destaques.
+
+Em `/candidatos`, o **Ranking geral** reúne as turmas pela média final. O filtro por turma preserva a posição geral. **Atualizar notas** aplica as médias finais preenchidas aos nomes do diário carregado, durante a sessão. Para tornar a atualização permanente, salve o diário completo com as novas notas no caminho local configurado para a turma e reabra a página.
 
 O painel consulta `/api/bi` ao abrir, a cada 5 minutos enquanto a aba está visível e ao clicar em **Atualizar dados**. A API baixa novamente o mesmo arquivo com cache desativado, lê os valores salvos e devolve somente resumos estatísticos. Preserve o ID do arquivo, os nomes das colunas e as abas Base Tratada e Dicionário ao atualizar a planilha. Se editar fórmulas no Excel, recalcule e salve o arquivo antes de substituir sua versão no Drive. Macros e links externos não são executados.
 

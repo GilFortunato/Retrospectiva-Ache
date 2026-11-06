@@ -3,13 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowLeft, ArrowUpRight, Award, CalendarDays, ChartNoAxesCombined, ChevronDown, CircleHelp, Filter, GraduationCap, Layers3, Link2, MapPin, MapPinned, Printer, RefreshCw, RotateCcw, ShieldCheck, UsersRound } from "lucide-react";
-import { biData, csvSummary, emptyFilters, filterLabel, getSummary, normalizeFilters, percent, type BiDataset, type BiFilters, type Distribution } from "@/lib/biDemografico";
+import { ArrowDownToLine, ArrowLeft, ArrowUpRight, Award, CalendarDays, ChartNoAxesCombined, ChevronDown, CircleHelp, Filter, GraduationCap, Layers3, Link2, MapPin, MapPinned, MessageCircle, Printer, RefreshCw, RotateCcw, ShieldCheck, UsersRound } from "lucide-react";
+import { biData, csvSummary, emptyFilters, filterLabel, getSummary, normalizeFilters, percent, type BiApprovals, type BiDataset, type BiFilters, type Distribution } from "@/lib/biDemografico";
 import styles from "./DemographicDashboard.module.css";
 
 const palette = ["#aa185d", "#ed8553", "#96b3a1", "#9d88b3", "#d7b86b", "#bdc3ce"];
 const formatDate = (date: string) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(date + "T12:00:00Z"));
 const number = (value: number | null) => value === null ? "—" : new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(value);
+type Population = "geral" | "aprovados";
 
 function Bars({ items, total, color = "#aa185d", onSelect }: { items: Distribution; total: number; color?: string; onSelect?: (label: string) => void }) {
   if (!items.length) return <p className={styles.empty}>Não há registros neste recorte.</p>;
@@ -18,7 +19,7 @@ function Bars({ items, total, color = "#aa185d", onSelect }: { items: Distributi
       <span className={styles.barTop}><span>{item.label}</span><span><strong>{item.count}</strong><small>{percent(item.count, total)}</small></span></span>
       <span className={styles.track} aria-hidden="true"><span style={{ width: `${total ? item.count / total * 100 : 0}%`, backgroundColor: color }} /></span>
     </>;
-    return <li key={item.label}>{onSelect ? <button type="button" className={styles.barButton} onClick={() => onSelect(item.label)} aria-label={`Filtrar por ${item.label}, ${item.count} participantes`}>{content}</button> : <div className={styles.barItem}>{content}</div>}</li>;
+    return <li key={item.label}>{onSelect && item.label !== "Não informado" ? <button type="button" className={styles.barButton} onClick={() => onSelect(item.label)} aria-label={`Filtrar por ${item.label}, ${item.count} participantes`}>{content}</button> : <div className={styles.barItem}>{content}</div>}</li>;
   })}</ul>;
 }
 
@@ -55,7 +56,9 @@ function ChartHeading({ eyebrow, title, note }: { eyebrow: string; title: string
 }
 
 export default function DemographicDashboard() {
-  const [dataset, setDataset] = useState<BiDataset>(biData);
+  const [generalDataset, setGeneralDataset] = useState<BiDataset>(biData);
+  const [approvals, setApprovals] = useState<BiApprovals | null>(null);
+  const [population, setPopulation] = useState<Population>("geral");
   const [filters, setFilters] = useState<BiFilters>(emptyFilters);
   const [showEducation, setShowEducation] = useState(false);
   const [status, setStatus] = useState("");
@@ -64,11 +67,15 @@ export default function DemographicDashboard() {
   const [refreshError, setRefreshError] = useState("");
   const [lastFetched, setLastFetched] = useState<string | null>(null);
   const refreshInProgress = useRef(false);
+  const approvedSelected = population === "aprovados";
+  const selectedDataset = approvedSelected ? approvals?.data : generalDataset;
+  const dataset = selectedDataset ?? generalDataset;
   const summary = getSummary(filters, dataset);
   const overview = dataset.slices.all;
   const distributions = summary.distributions;
-  const selection = filterLabel(filters, dataset);
-  const filtered = Boolean(filters.region || filters.state || filters.spRegion);
+  const geographicFilter = Boolean(filters.region || filters.state || filters.spRegion);
+  const geography = filterLabel(filters, dataset);
+  const selection = approvedSelected ? `Aprovados · ${geographicFilter ? geography : "Brasil"}` : geography;
   const stateOptions = dataset.filters.states.filter(state => !filters.region || state.region === filters.region);
   const canSelectSp = (!filters.state || filters.state === "SP") && (!filters.region || filters.region === "Sudeste");
   const topState = distributions?.states[0];
@@ -83,14 +90,15 @@ export default function DemographicDashboard() {
     setRefreshError("");
     try {
       const response = await fetch("/api/bi", { cache: "no-store", signal: AbortSignal.timeout(50000) });
-      const payload = await response.json() as { data?: BiDataset; fetchedAt?: string; error?: string };
-      if (!response.ok || !payload.data?.slices?.all || !payload.fetchedAt) throw new Error(payload.error || "Não foi possível ler os dados atualizados do Drive.");
+      const payload = await response.json() as { data?: BiDataset; approvals?: BiApprovals; fetchedAt?: string; error?: string };
+      if (!response.ok || !payload.data?.slices?.all || !payload.fetchedAt) throw new Error(payload.error || "Não foi possível ler os dados atualizados das planilhas.");
       const next = payload.data;
-      setDataset(next);
+      setGeneralDataset(next);
+      setApprovals(payload.approvals ?? null);
       setFilters(current => normalizeFilters(current, next));
       setLastFetched(payload.fetchedAt);
     } catch (error) {
-      setRefreshError(error instanceof Error && error.name !== "TimeoutError" ? error.message : "A consulta ao Drive demorou mais que o esperado. Tente novamente.");
+      setRefreshError(error instanceof Error && error.name !== "TimeoutError" ? error.message : "A consulta às planilhas demorou mais que o esperado. Tente novamente.");
     } finally {
       refreshInProgress.current = false;
       setRefreshing(false);
@@ -99,18 +107,21 @@ export default function DemographicDashboard() {
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
+    setPopulation(query.get("publico") === "aprovados" ? "aprovados" : "geral");
     setFilters(normalizeFilters({ region: query.get("regiao") || "", state: query.get("uf") || "", spRegion: query.get("sp") || "" }));
     void refreshData();
     const interval = setInterval(() => { if (document.visibilityState === "visible") void refreshData(); }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [refreshData]);
 
-  function updateFilters(next: BiFilters) {
-    const clean = normalizeFilters(next, dataset);
+  function updateFilters(next: BiFilters, nextPopulation = population) {
+    const clean = normalizeFilters(next, generalDataset);
     setFilters(clean);
+    setPopulation(nextPopulation);
     setStatus("");
     const url = new URL(window.location.href);
-    for (const name of ["regiao", "uf", "sp"]) url.searchParams.delete(name);
+    for (const name of ["publico", "regiao", "uf", "sp"]) url.searchParams.delete(name);
+    if (nextPopulation === "aprovados") url.searchParams.set("publico", nextPopulation);
     if (clean.region) url.searchParams.set("regiao", clean.region);
     if (clean.state) url.searchParams.set("uf", clean.state);
     if (clean.spRegion) url.searchParams.set("sp", clean.spRegion);
@@ -123,11 +134,12 @@ export default function DemographicDashboard() {
   }
 
   function downloadCsv() {
+    if (!selectedDataset) return;
     const blob = new Blob([csvSummary(summary, selection, dataset)], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "BI_Ache_" + (filters.spRegion || filters.state || filters.region || "Brasil").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "_") + ".csv";
+    anchor.download = "BI_Ache_" + (approvedSelected ? "Aprovados_" : "") + (filters.spRegion || filters.state || filters.region || "Brasil").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "_") + ".csv";
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -156,42 +168,52 @@ export default function DemographicDashboard() {
       <nav>
         {navigation.map(({ id, label, icon: Icon }) => <a key={id} href={`#${id}`} className={activeSection === id ? styles.navActive : ""} onClick={() => setActiveSection(id)} aria-current={activeSection === id ? "location" : undefined}><Icon size={18} aria-hidden="true" />{label}{activeSection === id ? <span className={styles.navDot} /> : null}</a>)}
         <Link href="/aprovados"><Award size={18} aria-hidden="true" />Aprovados</Link>
+        <Link href="/candidatos"><UsersRound size={18} aria-hidden="true" />Candidatos</Link>
+        <Link href="/satisfacao"><MessageCircle size={18} aria-hidden="true" />Satisfação</Link>
       </nav>
       <div className={styles.sidebarBottom}><ShieldCheck size={20} aria-hidden="true" /><strong>Uma visão sobre pessoas.</strong><p>Indicadores consolidados, sem identificação individual.</p><Link href="/home"><ArrowLeft size={16} aria-hidden="true" />Voltar ao Nexus</Link></div>
     </aside>
 
     <main className={styles.main} id="bi-main">
-      <div className={styles.topbar}><span><Link href="/home">Retrospectiva</Link><span>/</span><strong>BI demográfico</strong></span><span className={styles.topbarRight}><i aria-hidden="true" />{refreshError ? "ÚLTIMA CARGA" : lastFetched ? "CONECTADO AO DRIVE" : "BASE CONSOLIDADA"}</span></div>
+      <div className={styles.topbar}><span><Link href="/home">Retrospectiva</Link><span>/</span><strong>BI demográfico</strong></span><span className={styles.topbarRight}><i aria-hidden="true" />{refreshError ? "ÚLTIMA CARGA" : lastFetched ? "DADOS ATUALIZADOS" : "BASE CONSOLIDADA"}</span></div>
       <header className={styles.pageHeader} id="overview">
         <div><span className={styles.kicker}>PROGRAMA DE INCLUSÃO PcD ACHÉ</span><h1>A inclusão em números<span>.</span></h1><p>Quem são as pessoas que fazem parte desta jornada.</p></div>
-        <div className={styles.headerActions}><span className={styles.reference}><CalendarDays size={15} aria-hidden="true" />Referência: {dateLabel}</span><div><button type="button" className={styles.iconButton} onClick={() => void copyLink()} aria-label="Copiar link deste recorte" title="Copiar link do recorte"><Link2 size={17} aria-hidden="true" /></button><button type="button" className={styles.iconButton} onClick={() => window.print()} aria-label="Imprimir painel" title="Imprimir painel"><Printer size={17} aria-hidden="true" /></button><button type="button" className={styles.exportButton} onClick={downloadCsv}><ArrowDownToLine size={16} aria-hidden="true" />Exportar resumo</button></div></div>
+        <div className={styles.headerActions}><span className={styles.reference}><CalendarDays size={15} aria-hidden="true" />Referência: {dateLabel}</span><div><button type="button" className={styles.iconButton} onClick={() => void copyLink()} aria-label="Copiar link deste recorte" title="Copiar link do recorte"><Link2 size={17} aria-hidden="true" /></button><button type="button" className={styles.iconButton} onClick={() => window.print()} disabled={!selectedDataset} aria-label="Imprimir painel" title="Imprimir painel"><Printer size={17} aria-hidden="true" /></button><button type="button" className={styles.exportButton} onClick={downloadCsv} disabled={!selectedDataset}><ArrowDownToLine size={16} aria-hidden="true" />Exportar resumo</button></div></div>
       </header>
 
-      <section className={styles.filterPanel} aria-label="Filtros geográficos">
-        <div className={styles.filterIntro}><span><Filter size={17} aria-hidden="true" />Seu recorte</span><small>Explore a base por território</small></div>
+      <section className={styles.filterPanel} aria-label="Filtros do painel">
+        <div className={styles.filterIntro}><span><Filter size={17} aria-hidden="true" />Seu recorte</span><small>Explore por público e território</small></div>
+        <label>Público<select value={population} onChange={event => updateFilters(filters, event.target.value === "aprovados" ? "aprovados" : "geral")}><option value="geral">Geral</option><option value="aprovados">Aprovados</option></select></label>
         <label>Região do Brasil<select value={filters.region} onChange={event => updateFilters({ region: event.target.value, state: "", spRegion: "" })}><option value="">Todas as regiões</option>{dataset.filters.regions.map(region => <option key={region}>{region}</option>)}</select></label>
         <label>Unidade federativa<select value={filters.state} onChange={event => updateFilters({ ...filters, state: event.target.value, spRegion: "" })}><option value="">Todas as UFs</option>{stateOptions.map(state => <option key={state.value} value={state.value}>{state.value}</option>)}</select></label>
         <label>Região de São Paulo<select value={filters.spRegion} disabled={!canSelectSp} onChange={event => updateFilters({ ...filters, spRegion: event.target.value })}><option value="">Todas as regiões de SP</option>{dataset.filters.spRegions.map(region => <option key={region}>{region}</option>)}</select></label>
-        <button type="button" className={styles.resetButton} disabled={!filtered} onClick={() => updateFilters(emptyFilters)} title="Limpar filtros" aria-label="Limpar filtros"><RotateCcw size={17} aria-hidden="true" /></button>
+        <button type="button" className={styles.resetButton} disabled={!geographicFilter && !approvedSelected} onClick={() => updateFilters(emptyFilters, "geral")} title="Limpar filtros" aria-label="Limpar filtros"><RotateCcw size={17} aria-hidden="true" /></button>
       </section>
 
       <div className={styles.liveToolbar}>
-        <span role="status">{refreshing ? "Consultando a planilha no Drive..." : lastFetched ? `Última consulta: ${new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(lastFetched))} · atualização automática a cada 5 min` : refreshError ? "Carga inicial · sem conexão com o Drive" : "Carregando a conexão com o Drive"}</span>
+        <span role="status">{refreshing ? "Consultando as planilhas..." : lastFetched ? `Última consulta: ${new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(lastFetched))} · atualização automática a cada 5 min` : refreshError ? "Carga inicial · consulta indisponível" : "Carregando dados das planilhas"}</span>
         <button type="button" onClick={() => void refreshData()} disabled={refreshing}><RefreshCw size={14} className={refreshing ? styles.refreshSpin : undefined} aria-hidden="true" />{refreshing ? "Atualizando..." : "Atualizar dados"}</button>
       </div>
       {refreshError ? <p className={styles.refreshError} role="alert">{refreshError} {lastFetched ? "Mantivemos a última consulta carregada." : "O painel está exibindo a carga inicial, que pode estar desatualizada."}</p> : null}
 
-      <div className={styles.selectionLine}><span><i aria-hidden="true" />{selection}</span><span aria-live="polite" aria-atomic="true">{summary.total} de {overview.total} participantes · {percent(summary.total, overview.total)} da base</span></div>
       <p className={styles.status} role="status">{status}</p>
 
+      {selectedDataset ? <>
+      {approvedSelected && approvals ? <p className={styles.approvalNote}>
+        Listas das turmas {approvals.classes.join(", ")}.
+        {approvals.partial ? " Há listas de turma pendentes." : ""}
+        {approvals.unmatched > 0 ? ` ${approvals.unmatched} ${approvals.unmatched === 1 ? "pessoa incluída" : "pessoas incluídas"} no total com dados demográficos não informados.` : ""}
+      </p> : null}
+      <div className={styles.selectionLine}><span><i aria-hidden="true" />{selection}</span><span aria-live="polite" aria-atomic="true">{summary.total} de {overview.total} {approvedSelected ? "aprovados" : "participantes"} · {percent(summary.total, overview.total)} {approvedSelected ? "do grupo" : "da base"}</span></div>
+
       <section className={styles.kpis} aria-label="Indicadores do recorte">
-        <article className={styles.kpiPrimary}><div><span>Participantes</span><UsersRound size={20} aria-hidden="true" /></div><strong data-testid="kpi-total">{summary.total}</strong><p>Pessoas representadas no recorte</p><span className={styles.kpiPill}>{percent(summary.total, overview.total)} da base completa</span></article>
+        <article className={styles.kpiPrimary}><div><span>{approvedSelected ? "Aprovados" : "Participantes"}</span><UsersRound size={20} aria-hidden="true" /></div><strong data-testid="kpi-total">{summary.total}</strong><p>Pessoas representadas no recorte</p><span className={styles.kpiPill}>{percent(summary.total, overview.total)} {approvedSelected ? "do total de aprovados" : "da base completa"}</span></article>
         <article><div><span>Cidades / localidades</span><MapPin size={20} aria-hidden="true" /></div><strong>{number(summary.cityCount)}</strong><p>Entradas únicas de localidade</p><span className={styles.kpiFootnote}>Conforme tratamento da planilha</span></article>
         <article><div><span>UFs representadas</span><MapPinned size={20} aria-hidden="true" /></div><strong>{number(summary.stateCount)}</strong><p>Presença em {summary.regionCount === null ? "—" : summary.regionCount} {summary.regionCount === 1 ? "região" : "regiões"} do Brasil</p><span className={styles.kpiFootnote}>Alcance geográfico do programa</span></article>
         <article><div><span>Idade média</span><CalendarDays size={20} aria-hidden="true" /></div><strong data-testid="kpi-age">{number(summary.age?.mean ?? null)}<small>anos</small></strong><p>{summary.age ? `${summary.age.valid} idades válidas no cálculo` : "Detalhamento consolidado"}</p><span className={styles.kpiFootnote}>Referência: {dateLabel}</span></article>
       </section>
 
-      {summary.restricted ? <section className={styles.restricted} data-testid="restricted"><ShieldCheck size={30} aria-hidden="true" /><h2>Um recorte pequeno pede uma visão mais ampla.</h2><p>Este recorte tem menos de {dataset.source.minimumCohort} participantes. Exibimos apenas o total; selecione uma região ou UF com mais pessoas para consultar o perfil consolidado.</p><button type="button" className={styles.exportButton} onClick={() => updateFilters(emptyFilters)}>Ver a base completa<ArrowUpRight size={17} aria-hidden="true" /></button></section> : distributions ? <>
+      {summary.restricted ? <section className={styles.restricted} data-testid="restricted"><ShieldCheck size={30} aria-hidden="true" /><h2>{summary.total ? "Um recorte pequeno pede uma visão mais ampla." : "Nenhum participante neste recorte."}</h2><p>Para proteger grupos com menos de {dataset.source.minimumCohort} pessoas, exibimos apenas o total. Amplie o recorte para consultar o perfil consolidado.</p>{geographicFilter ? <button type="button" className={styles.exportButton} onClick={() => updateFilters(emptyFilters)}>Limpar recorte geográfico<ArrowUpRight size={17} aria-hidden="true" /></button> : null}</section> : distributions ? <>
         <section className={styles.highlights} aria-label="Destaques do recorte"><div><span className={styles.highlightIcon}><Layers3 size={19} aria-hidden="true" /></span><div><strong>O que os dados mostram</strong><span>Leituras do recorte atual</span></div></div><p><strong>{percent(topState?.count ?? 0, summary.total)}</strong> estão em <b>{topState?.label}</b></p><p><strong>{percent(middleAge, summary.total)}</strong> têm entre <b>35 e 54 anos</b></p><p><strong>{percent(topEducation?.count ?? 0, summary.total)}</strong> em <b>{topEducation?.label}</b></p></section>
 
         <section id="profile" className={styles.section} aria-labelledby="profile-heading"><div className={styles.sectionTitle}><h2 id="profile-heading">Perfil demográfico</h2><span>Diferentes trajetórias, uma jornada em comum</span></div>
@@ -205,7 +227,7 @@ export default function DemographicDashboard() {
         <section id="geography" className={styles.section} aria-labelledby="geography-heading"><div className={styles.sectionTitle}><h2 id="geography-heading">Onde a inclusão chega</h2><span>{summary.regionCount} {summary.regionCount === 1 ? "região" : "regiões"} · {summary.stateCount} UFs · {summary.cityCount} localidades</span></div>
           <div className={styles.twoColumns}>
             <article className={styles.card}><ChartHeading eyebrow="BRASIL" title="Por região" note="Clique para explorar" /><Bars items={distributions.regions} total={summary.total} color="#759985" onSelect={region => updateFilters({ region, state: "", spRegion: "" })} /><div className={styles.chartFooter}><MapPinned size={16} aria-hidden="true" /><span>Os percentuais consideram o recorte selecionado.</span></div></article>
-            <article className={styles.card}><ChartHeading eyebrow="PRESENÇA NACIONAL" title="Por unidade federativa" note="Clique para filtrar" /><div className={styles.stateGrid}>{distributions.states.map(item => <button type="button" key={item.label} onClick={() => selectState(item.label)} aria-label={`Filtrar UF ${item.label}, ${item.count} participantes`}><span>{item.label}</span><strong>{item.count}</strong><small>{percent(item.count, summary.total)}</small></button>)}</div></article>
+            <article className={styles.card}><ChartHeading eyebrow="PRESENÇA NACIONAL" title="Por unidade federativa" note="Clique para filtrar" /><div className={styles.stateGrid}>{distributions.states.map(item => <button type="button" key={item.label} disabled={item.label === "Não informado"} onClick={() => selectState(item.label)} aria-label={`${item.label === "Não informado" ? "UF não informada" : "Filtrar UF " + item.label}, ${item.count} participantes`}><span>{item.label}</span><strong>{item.count}</strong><small>{percent(item.count, summary.total)}</small></button>)}</div></article>
             <article className={styles.card}><ChartHeading eyebrow="CAPILARIDADE" title="Principais localidades" note="A partir de 3 participantes" /><div className={styles.tableWrapper}><table className={styles.cityTable}><thead><tr><th scope="col">Localidade</th><th scope="col">Pessoas</th><th scope="col">% do recorte</th></tr></thead><tbody>{distributions.cities.map(item => <tr key={item.label}><td>{item.label}</td><td>{item.count}</td><td>{percent(item.count, summary.total)}</td></tr>)}</tbody></table></div><p className={styles.dataNote}>Entradas de localidade preservadas da planilha. As demais foram consolidadas para esta leitura.</p></article>
             <article className={styles.card}><ChartHeading eyebrow="SÃO PAULO" title="Regiões do estado" note={distributions.spRegions.length ? `${distributions.spRegions.reduce((sum, item) => sum + item.count, 0)} participantes em SP` : undefined} /><Bars items={distributions.spRegions} total={summary.total} color="#dd875c" onSelect={spRegion => updateFilters({ region: "Sudeste", state: "SP", spRegion })} />{distributions.spRegions.length ? <p className={styles.dataNote}>Macrorregiões analíticas da planilha. Clique em uma região para explorar.</p> : <p className={styles.dataNote}>Selecione Brasil, Sudeste ou SP para explorar esta distribuição.</p>}</article>
           </div>
@@ -219,7 +241,18 @@ export default function DemographicDashboard() {
         </section>
       </> : null}
 
-      <details className={styles.methodology}><summary><CircleHelp size={17} aria-hidden="true" />Como ler estes indicadores<ChevronDown size={16} aria-hidden="true" /></summary><div><p><strong>Fonte:</strong> planilha demográfica do Programa de Inclusão PcD Aché, aba Base Tratada. Referência: {dateLabel}. O painel consulta o mesmo arquivo do Drive ao abrir, a cada 5 minutos enquanto a página está visível e ao clicar em Atualizar dados. Se houver falha, a última carga permanece visível com um aviso.</p><p><strong>Cálculos:</strong> quantidades e percentuais são recalculados conforme o filtro geográfico. A base carregada tem {overview.total} participantes. A idade média considera {overview.age?.valid ?? 0} idades entre 18 e 100 anos; {overview.age?.invalid ?? 0} registros não informados ou inconsistentes ficam fora da média. Gênero, raça/cor e formação seguem as categorias da planilha. Salve as alterações no mesmo arquivo e preserve as colunas da Base Tratada.</p><p><strong>Localidades:</strong> são contadas {overview.cityCount} entradas únicas com informação de cidade/localidade. As macrorregiões de SP seguem o agrupamento analítico do arquivo.</p><p><strong>Dados consolidados:</strong> a página e a exportação contêm apenas resumos estatísticos. Nomes e datas de nascimento não são publicados. Recortes com menos de 5 pessoas exibem apenas o total.</p></div></details>
+      <details className={styles.methodology}><summary><CircleHelp size={17} aria-hidden="true" />Como ler estes indicadores<ChevronDown size={16} aria-hidden="true" /></summary><div>
+        <p><strong>Fonte.</strong> Planilha demográfica do Programa de Inclusão PcD Aché, aba Base Tratada, com referência em {dateLabel}. O painel consulta as planilhas ao abrir, a cada 5 minutos enquanto a página está visível e ao clicar em Atualizar dados. Em caso de falha na consulta à base demográfica, a última carga permanece visível com um aviso.</p>
+        <p><strong>Público.</strong> Geral inclui toda a base demográfica. Aprovados inclui todos os nomes das listas das turmas A, B e C. Quando falta uma correspondência única, a pessoa entra no total com os dados demográficos como não informados.</p>
+        <p><strong>Cálculos.</strong> Quantidades e percentuais seguem o público e o território selecionados. O público selecionado tem {overview.total} participantes. A idade média considera idades válidas entre 18 e 100 anos. Gênero, raça/cor e formação seguem as categorias da planilha.</p>
+        <p><strong>Localidades.</strong> O painel conta entradas únicas com informação de cidade ou localidade. As macrorregiões de SP seguem o agrupamento analítico do arquivo.</p>
+        <p><strong>Dados consolidados.</strong> A página e a exportação contêm apenas resumos estatísticos. O detalhamento de grupos com menos de {dataset.source.minimumCohort} pessoas é limitado ao total.</p>
+      </div></details>
+      </> : <section className={styles.restricted} aria-live="polite">
+        <Award size={30} aria-hidden="true" />
+        <h2>Resultados das turmas A, B e C</h2>
+        <p>{refreshing ? "Consultando as listas das turmas." : approvals?.error || "Aguardando as listas das turmas A, B e C."}</p>
+      </section>}
       <footer className={styles.footer}><span>ACHÉ + PROSPER · PROGRAMA DE INCLUSÃO PcD</span><span>Mais que contratar, queremos incluir.</span><Link href="/home">Voltar ao Nexus<ArrowUpRight size={14} aria-hidden="true" /></Link></footer>
     </main>
   </div>;

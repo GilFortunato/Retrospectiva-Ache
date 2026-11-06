@@ -1,4 +1,5 @@
 import { openExcelWorkbook, type WorkbookCell, type WorkbookRow } from "@/lib/excelWorkbook";
+import { participantKey } from "@/lib/participantName";
 
 export type ClassId = "A" | "B" | "C";
 
@@ -6,7 +7,12 @@ const performanceFields = ["finalGrade", "attendance", "highlightWeeks", "commun
 export type PerformanceField = typeof performanceFields[number];
 type MetricTotals = { sum: number; count: number };
 export type ClassPerformance = Record<PerformanceField, MetricTotals>;
-export type DiaryParticipant = Record<PerformanceField, number | null> & { name: string };
+export type DiaryParticipant = Record<PerformanceField, number | null> & {
+  name: string;
+  teacherComment: string | null;
+  additionalObservation: string | null;
+  weeklyGrades: { week: number; grade: number }[];
+};
 
 export type ClassDiary = {
   total: number;
@@ -26,6 +32,8 @@ const columnLabels = {
   communication: ["comunicacao"],
   initiative: ["protagonismo"],
   collaboration: ["colaboracao"],
+  teacherComment: ["observacoes finais", "avaliacao do professor", "comentario do professor"],
+  additionalObservation: ["observacoes (se necessario)"],
   activities: ["nota: atividades em aula"],
   exam: ["nota: prova avaliativa"],
   extra: ["nota: atividades extras"],
@@ -66,6 +74,11 @@ function attendanceValue(value: WorkbookCell | undefined): number | null {
   return percentage <= 100 ? percentage : null;
 }
 
+function observation(value: WorkbookCell | undefined) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text && text !== "-" && text !== "—" ? text : null;
+}
+
 const approvals = new Set(["aprovado", "aprovada", "aprovado(a)", "aprovada(o)"]);
 const negatives = new Set(["reprovado", "reprovada", "reprovado(a)", "nao aprovado", "nao aprovada"]);
 const issuedCertificates = new Set(["sim", "emitido", "emitida", "certificado emitido", "certificada", "certificado"]);
@@ -87,16 +100,52 @@ function summarizePerformance(participants: DiaryParticipant[]): ClassPerformanc
   })) as ClassPerformance;
 }
 
-export function parseClassDiary(bytes: Uint8Array, classId: ClassId): ClassDiary {
+export function updateFinalGrades(current: ClassDiary, incoming: ClassDiary): ClassDiary {
+  const names = new Set(current.approved.map(person => participantKey(person.name)));
+  const seen = new Set<string>();
+  const grades = new Map<string, number>();
+  if (names.size !== current.approved.length) throw new Error("Há nomes duplicados no diário atual.");
+  for (const person of incoming.participants) {
+    const key = participantKey(person.name);
+    if (!names.has(key) || seen.has(key)) {
+      throw new Error("Há nomes duplicados ou que não correspondem à lista desta turma.");
+    }
+    seen.add(key);
+    if (person.finalGrade === null) continue;
+    if (!Number.isFinite(person.finalGrade) || person.finalGrade < 0 || person.finalGrade > 10) {
+      throw new Error("As médias finais devem estar entre 0 e 10.");
+    }
+    grades.set(key, person.finalGrade);
+  }
+  if (!grades.size) throw new Error("Inclua ao menos uma média final válida na planilha.");
+
+  const apply = (person: DiaryParticipant) => {
+    const grade = grades.get(participantKey(person.name));
+    return grade === undefined ? person : { ...person, finalGrade: grade };
+  };
+  const participants = current.participants.map(apply);
+  return {
+    ...current,
+    participants,
+    approved: current.approved.map(apply),
+    performance: summarizePerformance(participants),
+  };
+}
+
+export function parseClassDiary(bytes: Uint8Array, classId: ClassId, { asApprovalList = false } = {}): ClassDiary {
   const workbook = openExcelWorkbook(bytes);
 
   for (const sheetName of workbook.sheetNames) {
     const rows = workbook.readSheet(sheetName);
     const headers = rows.slice(0, 20).map(findColumns);
-    const headerIndex = headers.findIndex(columns => columns.name && (columns.result || columns.certificate || performanceFields.some(field => columns[field])));
+    const headerIndex = headers.findIndex(columns => columns.name && (asApprovalList || columns.result || columns.certificate || performanceFields.some(field => columns[field])));
     if (headerIndex === -1) continue;
 
     const columns = headers[headerIndex];
+    const weeklyColumns = Object.entries(rows[headerIndex]).flatMap(([column, label]) => {
+      const week = normalize(label).match(/^avaliacao\s+(?:semana|s)\s*0*([1-9]\d*)$/)?.[1];
+      return week ? [{ column, week: Number(week) }] : [];
+    });
     const title = [sheetName, ...rows.slice(0, headerIndex).flatMap(row => Object.values(row))].join(" ");
     const titleClass = normalize(title).match(/\bturma\s+([a-z])\b/)?.[1].toUpperCase();
     if (titleClass && titleClass !== classId) throw new Error(`O arquivo é da Turma ${titleClass}. Selecione essa turma para carregar o diário.`);
@@ -128,19 +177,25 @@ export function parseClassDiary(bytes: Uint8Array, classId: ClassId): ClassDiary
         communication: numberValue(cell("communication")),
         initiative: numberValue(cell("initiative")),
         collaboration: numberValue(cell("collaboration")),
+        teacherComment: observation(cell("teacherComment")),
+        additionalObservation: observation(cell("additionalObservation")),
+        weeklyGrades: weeklyColumns.flatMap(({ column, week }) => {
+          const grade = numberValue(row[column]);
+          return grade === null ? [] : [{ week, grade }];
+        }),
       };
-      if (!(rowClass || status || result || certificate || grade !== null || performanceFields.some(field => participant[field] !== null))) continue;
+      if (!asApprovalList && !(rowClass || status || result || certificate || grade !== null || performanceFields.some(field => participant[field] !== null))) continue;
       if (rowClass && rowClass !== classId) throw new Error(`O diário contém registros da Turma ${rowClass}. Confira a turma selecionada.`);
-      if (inactiveStatuses.has(status) || inactiveStatuses.has(result)) continue;
+      if (!asApprovalList && (inactiveStatuses.has(status) || inactiveStatuses.has(result))) continue;
 
       participants.push(participant);
-      if (negatives.has(result)) continue;
-      const isApproved = approvals.has(result) || approvals.has(certificate) || issuedCertificates.has(certificate);
+      if (!asApprovalList && negatives.has(result)) continue;
+      const isApproved = asApprovalList || approvals.has(result) || approvals.has(certificate) || issuedCertificates.has(certificate);
       if (isApproved) approved.push(participant);
       else pending++;
     }
 
-    if (!participants.length) throw new Error("O diário não tem participantes ativos para esta turma.");
+    if (!participants.length && !asApprovalList) throw new Error("O diário não tem participantes ativos para esta turma.");
     return {
       total: participants.length,
       pending,

@@ -1,0 +1,66 @@
+.page {
+  min-height: 100vh;
+  padding: 28px max(24px, calc((100% - 1160px) / 2)) 52px;
+  background: #faf7f5;
+  color: #31202d;
+}
+.nav { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 24px; }
+.nav a, .cta { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; }
+.nav a { color: #7e2857; }
+.hero {
+  padding: clamp(28px, 6vw, 72px);
+  border-radius: 24px;
+  background: radial-gradient(ellipse at 90% 10%, #963465, transparent 57%), linear-gradient(130deg, #3c1938, #5f2048);
+  color: #fff9fc;
+}
+.kicker { margin: 0 0 8px; font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 750; color: #972959; }
+.hero .kicker { color: #ffcce5; }
+.hero h1 { max-width: 16ch; margin: 0; font-size: clamp(2.4rem, 6vw, 4.7rem); line-height: 1.05; letter-spacing: -.045em; }
+.lead { max-width: 58ch; font-size: 1.08rem; line-height: 1.65; color: #f5dce9; }
+.heroStats { display: flex; flex-wrap: wrap; gap: 20px clamp(24px, 5vw, 60px); margin: 28px 0; }
+.heroStats div { display: grid; gap: 4px; }
+.heroStats strong { font-size: clamp(1.75rem, 4vw, 2.6rem); line-height: 1; }
+.heroStats span, .heroStats small { color: #f5dce9; font-size: .84rem; }
+.cta { padding: 10px 14px; border: 1px solid #f1bbd5; border-radius: 10px; }
+.cta:hover { background: #fff1fa; color: #522041; }
+.overview { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 24px; align-items: start; margin: 42px 0; }
+.page h2 { margin: 0 0 10px; font-size: clamp(1.65rem, 3vw, 2.35rem); line-height: 1.15; letter-spacing: -.025em; }
+.overview p, .journey p, .closing p, .method p, .chart p { line-height: 1.62; }
+.means { display: grid; gap: 8px; margin: 18px 0 0; }
+.means > div { background: white; border-left: 4px solid; border-radius: 8px; padding: 10px 14px; }
+.means dt, .cycleScores dt { font-size: .81rem; font-weight: 650; }
+.means dd, .cycleScores dd { margin: 2px 0 0; font-size: 1.5rem; font-weight: 750; }
+.means dd small { font-size: .7em; color: #62525e; }
+.means dd span { display: block; font-size: .8rem; font-weight: 400; color: #62525e; }
+.chart { margin: 0; padding: 20px; background: white; border: 1px solid #ede0e7; border-radius: 18px; min-width: 0; }
+.chart h3, .chapter h3 { margin: 0; font-size: 1.35rem; }
+.chart p { font-size: .85rem; color: #62525e; }
+.chartScroll { overflow-x: auto; }
+.chartScroll svg { display: block; width: 100%; min-width: 400px; height: auto; }
+.chartScroll text { fill: #62525e; font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 15px; margin: 10px 0 0; padding: 0; list-style: none; font-size: .8rem; }
+.legend li { display: flex; gap: 6px; align-items: center; }
+.legend span { width: 10px; height: 10px; border-radius: 50%; }
+.journey { scroll-margin-top: 24px; }
+.timeline { list-style: none; margin: 22px 0 30px; padding: 0; display: grid; gap: 14px; }
+.chapter { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 18px; background: white; border: 1px solid #eadfe5; border-radius: 16px; padding: clamp(16px, 3vw, 26px); }
+.number { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 13px; background: #fae6f0; color: #8d2355; font-weight: 750; font-size: 1.3rem; }
+.collection { font-size: .83rem; color: #65505d; margin: 5px 0; }
+.cycleScores { display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 14px 0; }
+.quotes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.quotes blockquote { margin: 0; padding: 13px; border-radius: 10px; background: #fbf1f6; color: #4f3145; }
+.quotes svg { color: #972959; }
+.quotes p { margin: 6px 0 0; }
+.closing { display: flex; gap: 16px; padding: 22px; border-radius: 16px; background: #f0eaf5; }
+.closing svg { flex-shrink: 0; color: #74335d; }
+.closing p:last-child { margin-bottom: 0; }
+.method { margin-top: 26px; color: #62525e; font-size: .88rem; }
+.method h2 { font-size: 1.1rem; }
+.page :focus-visible { outline: 2px solid #a12865; outline-offset: 4px; }
+.hero :focus-visible { outline-color: white; }
+@media (max-width: 780px) { .overview { grid-template-columns: 1fr; } }
+@media (max-width: 540px) {
+  .page { padding-inline: 14px; }
+  .chapter { grid-template-columns: 1fr; }
+  .quotes { grid-template-columns: 1fr; }
+}

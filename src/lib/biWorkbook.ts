@@ -1,10 +1,19 @@
 import type { BiDataset, BiSummary, Distribution } from "@/lib/biDemografico";
 import { openExcelWorkbook, type WorkbookRow } from "@/lib/excelWorkbook";
+import { participantKey } from "@/lib/participantName";
 
 const MISSING = "Não informado";
 const MINIMUM_COHORT = 5;
 
 export function parseDemographicWorkbook(bytes: Uint8Array): BiDataset {
+  return parseDemographicDashboard(bytes).data;
+}
+
+export function parseDemographicDashboard(
+  bytes: Uint8Array,
+  approvedNames?: readonly string[],
+  approvedNameAliases: Readonly<Record<string, string>> = {},
+) {
   const { readSheet } = openExcelWorkbook(bytes);
   const rows = readSheet("Base Tratada");
   const header = rows[0] || {};
@@ -26,9 +35,12 @@ export function parseDemographicWorkbook(bytes: Uint8Array): BiDataset {
     return [...counts].map(([name, count]) => ({ label: name, count })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "pt-BR"));
   };
   const countUnique = (source: WorkbookRow[], field: string) => new Set(source.map(row => label(row[field])).filter(value => value !== MISSING)).size;
-  function summarize(source: WorkbookRow[]): BiSummary {
+  function summarize(source: WorkbookRow[], comparisonTotal = source.length): BiSummary {
     const total = source.length;
-    if (total < MINIMUM_COHORT) return { total, restricted: true, cityCount: null, stateCount: null, regionCount: null, age: null, distributions: null };
+    const outsideSelection = comparisonTotal - total;
+    if (total < MINIMUM_COHORT || (outsideSelection > 0 && outsideSelection < MINIMUM_COHORT)) {
+      return { total, restricted: true, cityCount: null, stateCount: null, regionCount: null, age: null, distributions: null };
+    }
     const ages = source.map(age).filter((value): value is number => value !== null);
     const bands = new Map<string, number>();
     source.forEach(row => { const band = ageBand(row); bands.set(band, (bands.get(band) || 0) + 1); });
@@ -54,13 +66,43 @@ export function parseDemographicWorkbook(bytes: Uint8Array): BiDataset {
   const regions = [...new Set(records.map(row => label(row["Região Brasil"])))].filter(value => value !== MISSING).sort();
   const states = [...new Map(records.filter(row => label(row.UF) !== MISSING).map(row => [label(row.UF), { value: label(row.UF), region: label(row["Região Brasil"]) }])).values()].sort((a, b) => a.value.localeCompare(b.value));
   const spRegions = [...new Set(records.filter(row => label(row.UF) === "SP").map(row => label(row["Região SP"])))].filter(value => value !== MISSING).sort();
-  const slices: Record<string, BiSummary> = { all: summarize(records) };
-  regions.forEach(region => { slices["region:" + region] = summarize(records.filter(row => label(row["Região Brasil"]) === region)); });
-  states.forEach(state => { slices["state:" + state.value] = summarize(records.filter(row => label(row.UF) === state.value)); });
-  spRegions.forEach(region => { slices["sp:" + region] = summarize(records.filter(row => label(row.UF) === "SP" && label(row["Região SP"]) === region)); });
   const dictionary = readSheet("Dicionário");
   const rawDate = dictionary.find(row => row.A === "Data de referência")?.B;
   const match = typeof rawDate === "string" ? rawDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/) : null;
   const referenceDate = match ? `${match[3]}-${match[2]}-${match[1]}` : typeof rawDate === "number" ? new Date(Date.UTC(1899, 11, 30) + rawDate * 86400000).toISOString().slice(0, 10) : "2026-09-18";
-  return { source: { fileName: "Planilha demográfica Aché", sheet: "Base Tratada", referenceDate, minimumCohort: MINIMUM_COHORT }, filters: { regions, states, spRegions }, slices };
+  const source = { fileName: "Planilha demográfica Aché", sheet: "Base Tratada", referenceDate, minimumCohort: MINIMUM_COHORT };
+  const filters = { regions, states, spRegions };
+
+  function createDataset(rows: WorkbookRow[], comparison?: BiDataset, unmatched = 0): BiDataset {
+    const slices: Record<string, BiSummary> = {};
+    const addSlice = (key: string, subset: WorkbookRow[]) => {
+      const baseline = comparison?.slices[key]?.total;
+      const comparisonTotal = baseline === undefined ? undefined : baseline + (key === "all" ? unmatched : 0);
+      slices[key] = summarize(subset, comparisonTotal);
+    };
+    addSlice("all", rows);
+    regions.forEach(region => addSlice("region:" + region, rows.filter(row => label(row["Região Brasil"]) === region)));
+    states.forEach(state => addSlice("state:" + state.value, rows.filter(row => label(row.UF) === state.value)));
+    spRegions.forEach(region => addSlice("sp:" + region, rows.filter(row => label(row.UF) === "SP" && label(row["Região SP"]) === region)));
+    return { source, filters, slices };
+  }
+
+  const data = createDataset(records);
+  if (!approvedNames) return { data, approved: null, unmatched: 0 };
+
+  const uniqueRecords = new Map<string, WorkbookRow | null>();
+  for (const row of records) {
+    const key = participantKey(String(row.Participante));
+    uniqueRecords.set(key, uniqueRecords.has(key) ? null : row);
+  }
+  const aliases = new Map(Object.entries(approvedNameAliases).map(([name, target]) => [participantKey(name), participantKey(target)]));
+  const names = new Set(approvedNames.map(participantKey).filter(Boolean).map(name => {
+    if (uniqueRecords.has(name)) return name;
+    const target = aliases.get(name);
+    return target && uniqueRecords.get(target) ? target : name;
+  }));
+  const approvedRows = [...names].map(name => uniqueRecords.get(name)).filter((row): row is WorkbookRow => Boolean(row));
+  const unmatched = names.size - approvedRows.length;
+  const missingDemographics = Array.from({ length: unmatched }, (): WorkbookRow => ({}));
+  return { data, approved: createDataset([...approvedRows, ...missingDemographics], data, unmatched), unmatched };
 }

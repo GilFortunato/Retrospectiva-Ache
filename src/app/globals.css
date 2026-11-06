@@ -44,7 +44,15 @@ body{min-height:100vh}
 .homeContent{display:grid;grid-template-columns:minmax(330px,.78fr) minmax(650px,1.22fr);align-items:center;gap:1.5rem;max-width:1500px;margin:0 auto;min-height:calc(100vh - 88px)}
 .hero{text-align:left;max-width:520px;margin:0;transform:translateY(-48px)}
 .hero h1{font-size:clamp(3.7rem,5.3vw,6rem);line-height:.91;margin:.65rem 0 1.35rem;letter-spacing:-.045em}
-.hero>p:last-child{color:var(--muted);font-size:1.05rem;line-height:1.55;max-width:470px}
+.hero>.homeIntro{color:var(--muted);font-size:1.05rem;line-height:1.55;max-width:470px}
+.retrospectiveAreas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;margin-top:1.3rem;text-align:left}
+.retrospectiveAreas a{display:grid;align-content:start;gap:.35rem;padding:.9rem;border-radius:15px;background:#fff;border:1px solid #f0d4e1;color:var(--wine)}
+.retrospectiveAreas a:hover,.retrospectiveAreas a:focus-visible{border-color:var(--magenta);background:#fff4f9}
+.retrospectiveAreas a:last-child:nth-child(odd){grid-column:1/-1}
+.retrospectiveAreaTitle{display:flex;align-items:center;gap:.4rem;font-weight:750}
+.retrospectiveAreaTitle svg{flex-shrink:0;color:var(--magenta)}
+.retrospectiveAreaTitle svg:last-child{margin-left:auto}
+.retrospectiveAreaDescription{font-size:.85rem;line-height:1.4;color:var(--muted)}
 .nexusWrap{display:flex;align-items:center;justify-content:center;min-width:0}
 
 .nexus{width:min(710px,50vw);height:min(710px,50vw);min-width:640px;min-height:640px;position:relative}
@@ -100,7 +108,7 @@ body{min-height:100vh}
   .homePage{overflow:auto}
   .homeContent{display:block;min-height:auto}
   .hero{text-align:center;max-width:760px;margin:4rem auto 2rem;transform:none}
-  .hero>p:last-child{margin-left:auto;margin-right:auto}
+  .hero>.homeIntro{margin-left:auto;margin-right:auto}
   .nexusWrap{display:block}
   .nexus{height:auto;min-width:0;min-height:0;width:100%;display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin:2rem auto 0;transform:none}
   .nexus:before,.nexus:after,.nexusCore{display:none}
@@ -108,6 +116,7 @@ body{min-height:100vh}
   .adminGrid{grid-template-columns:1fr}
 }
 @media(max-width:560px){
+  .retrospectiveAreas{grid-template-columns:1fr}
   .topbar>div span{display:none}
   .nexus{grid-template-columns:1fr}
   .hero h1{font-size:3.5rem}

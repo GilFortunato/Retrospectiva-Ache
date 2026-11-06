@@ -30,8 +30,7 @@
 .classes button > span:first-child { font-weight: 700; }
 .classes small { color: var(--bi-muted); }
 
-.reference,
-.approved {
+.reference {
   display: inline-flex;
   align-items: center;
   padding: 4px 8px;
@@ -54,8 +53,7 @@
 }
 
 .resultsHeader h2 { font-size: 22px; margin: 5px 0 3px; }
-.source, .note { color: var(--bi-muted); overflow-wrap: anywhere; }
-.note { margin: 15px 0 0; font-size: 12px; }
+.source { color: var(--bi-muted); overflow-wrap: anywhere; }
 
 @media (min-width: 581px) {
   .performanceGrid.performanceGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
@@ -73,22 +71,67 @@
 .approvalStats dt { color: var(--bi-muted); font-size: 12px; }
 .approvalStats dd { margin: 4px 0 0; font-size: 24px; font-weight: 700; }
 
+.participantList { display: grid; gap: 8px; }
+.candidateActions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.candidateCount { margin: 0 0 12px; color: var(--bi-muted); }
+.candidateSubtitle { display: block; margin-top: 3px; color: var(--bi-muted); font-weight: 500; }
+.classFilter { display: grid; gap: 4px; font-size: 12px; font-weight: 600; }
+.classFilter select {
+  padding: 8px 10px;
+  border: 1px solid var(--bi-line);
+  border-radius: 7px;
+  background: white;
+  color: var(--bi-ink);
+  font: inherit;
+}
+
 .participantDetails {
-  margin-top: 14px;
-  padding: 10px 15px;
   background: #fff;
   border: 1px solid var(--bi-line);
   border-radius: 10px;
 }
 
 .participantDetails summary {
-  padding: 4px 0;
-  color: var(--bi-brand);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  color: var(--bi-ink);
   font-weight: 700;
+  overflow-wrap: anywhere;
+  list-style: none;
   cursor: pointer;
 }
 
-.participantDetails .table th:first-child { min-width: 150px; }
+.participantDetails summary::-webkit-details-marker { display: none; }
+.participantDetails summary svg { flex-shrink: 0; color: var(--bi-brand); }
+.participantDetails[open] { background: #fcfafb; }
+.participantDetails[open] summary { color: var(--bi-brand); border-bottom: 1px solid var(--bi-line); }
+.participantDetails[open] summary svg { transform: rotate(180deg); }
+
+.rankingDetails { margin-bottom: 14px; }
+.rankingDetails summary { color: var(--bi-brand); }
+.rankingScroll { overflow-x: auto; }
+.rankingScroll:focus-visible { outline: 2px solid var(--bi-brand); }
+.rankingTable { width: 100%; min-width: 550px; border-collapse: collapse; text-align: left; }
+.rankingTable th, .rankingTable td { padding: 10px; border-bottom: 1px solid var(--bi-line); vertical-align: top; }
+.rankingTable thead { color: var(--bi-muted); }
+.rankingTable td:first-child, .rankingTable td:nth-child(3) { font-variant-numeric: tabular-nums; font-weight: 700; }
+.teacherTags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.teacherTags li { padding: 3px 7px; border-radius: 6px; background: #f9e3ef; color: #8c164c; font-size: 11px; font-weight: 600; }
+.teacherTags .teacherTop { background: #fff0b8; color: #644700; }
+
+.participantBody { display: grid; gap: 15px; padding: 16px; }
+.participantBody h3 { margin: 0 0 6px; font-size: 13px; }
+.teacherComment p { margin: 0; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.personMetrics, .weeklyGrades { display: grid; gap: 8px; margin: 0; }
+.personMetrics { grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); }
+.weeklyGrades { grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); }
+.personMetrics > div, .weeklyGrades > div { padding: 9px 11px; background: #fff; border: 1px solid var(--bi-line); border-radius: 7px; }
+.personMetrics dt, .weeklyGrades dt { color: var(--bi-muted); font-size: 11px; }
+.personMetrics dd, .weeklyGrades dd { margin: 3px 0 0; font-weight: 700; }
 
 .uploadButton {
   display: inline-flex;
@@ -105,7 +148,7 @@
 }
 
 .uploadButton:disabled { opacity: .65; cursor: wait; }
-.classes button:focus-visible, .uploadButton:focus-visible { outline: 2px solid var(--bi-brand); outline-offset: 3px; }
+.classes button:focus-visible, .uploadButton:focus-visible, .participantDetails summary:focus-visible { outline: 2px solid var(--bi-brand); outline-offset: 3px; }
 
 .empty {
   padding: 24px;
@@ -121,19 +164,6 @@
 .feedback { background: #edf7ef; color: #28623c; }
 .error { background: #fff2f1; color: #922b24; }
 
-.tableScroll { overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; text-align: left; }
-
-.table th, .table td {
-  padding: 11px 10px;
-  border-bottom: 1px solid var(--bi-line);
-  vertical-align: middle;
-}
-
-.table thead { color: var(--bi-muted); }
-.table td { white-space: nowrap; }
-.approved { background: #edf7ef; color: #28623c; }
-
 @media (max-width: 580px) {
   .classes { gap: 6px; }
   .classes button { align-content: flex-start; padding: 10px; gap: 4px; }
@@ -142,4 +172,5 @@
   .empty { padding: 15px; }
   .performanceGrid.performanceGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .approvalStats { gap: 8px; }
+  .participantBody, .participantDetails summary { padding: 12px; }
 }
