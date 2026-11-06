@@ -3,23 +3,56 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState, type ChangeEvent } from "react";
-import { ArrowLeft, Award, ChartNoAxesCombined, ClipboardList, Clock, FileSpreadsheet, ShieldCheck, Upload, UsersRound } from "lucide-react";
-import type { ClassDiary, ClassId } from "@/lib/classDiary";
+import { ArrowLeft, Award, ChartNoAxesCombined, ClipboardList, FileSpreadsheet, Flag, MessageCircle, ShieldCheck, Star, Upload, UsersRound, type LucideIcon } from "lucide-react";
+import type { ClassDiary, ClassId, ClassPerformance, PerformanceField } from "@/lib/classDiary";
 import dashboard from "@/components/bi/DemographicDashboard.module.css";
 import styles from "./ApprovalPanel.module.css";
 
 const classIds: ClassId[] = ["A", "B", "C"];
-const initialDiaries: Record<ClassId, ClassDiary> = {
-  A: { total: 33, pending: 33, averageAttendance: 84, approved: [] },
-  B: { total: 32, pending: 32, averageAttendance: 78.8125, approved: [] },
-  C: { total: 29, pending: 29, averageAttendance: 83.3793, approved: [] },
+const emptyPerformance: ClassPerformance = {
+  finalGrade: { sum: 0, count: 0 },
+  attendance: { sum: 0, count: 0 },
+  highlightWeeks: { sum: 0, count: 0 },
+  communication: { sum: 0, count: 0 },
+  initiative: { sum: 0, count: 0 },
+  collaboration: { sum: 0, count: 0 },
 };
 
-const numberFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
-const gradeFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+// Aggregate values from the supplied diaries. Individual records are read in the browser.
+const initialDiaries: Record<ClassId, ClassDiary> = {
+  A: { total: 33, pending: 33, performance: { ...emptyPerformance, attendance: { sum: 2772, count: 33 } }, participants: [], approved: [] },
+  B: { total: 32, pending: 32, performance: { ...emptyPerformance, attendance: { sum: 2522, count: 32 } }, participants: [], approved: [] },
+  C: {
+    total: 29,
+    pending: 29,
+    performance: {
+      finalGrade: { sum: 251.3, count: 29 },
+      attendance: { sum: 2418, count: 29 },
+      highlightWeeks: { sum: 56, count: 29 },
+      communication: { sum: 72.2, count: 29 },
+      initiative: { sum: 68.6, count: 29 },
+      collaboration: { sum: 73.8, count: 29 },
+    },
+    participants: [],
+    approved: [],
+  },
+};
 
-function formatAttendance(value: number | null) {
-  return value === null ? "—" : `${numberFormat.format(value)}%`;
+const metrics: { field: PerformanceField; label: string; caption: string; icon: LucideIcon; showSum?: boolean }[] = [
+  { field: "finalGrade", label: "Média final", caption: "Média das notas da turma", icon: Award },
+  { field: "attendance", label: "Frequência", caption: "Média dos percentuais registrados", icon: ClipboardList },
+  { field: "highlightWeeks", label: "Semanas em destaque", caption: "Soma dos destaques individuais", icon: Star },
+  { field: "communication", label: "Comunicação", caption: "Média da competência", icon: MessageCircle, showSum: true },
+  { field: "initiative", label: "Protagonismo", caption: "Média da competência", icon: Flag, showSum: true },
+  { field: "collaboration", label: "Colaboração", caption: "Média da competência", icon: UsersRound, showSum: true },
+];
+
+const numberFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+
+function formatMetric(field: PerformanceField, value: number | null) {
+  if (value === null) return "—";
+  const formatted = numberFormat.format(value);
+  return field === "attendance" ? `${formatted}%` : formatted;
 }
 
 type LoadedDiary = { filename: string; results: ClassDiary };
@@ -97,7 +130,7 @@ export default function ApprovalPanel() {
           <div>
             <span className={dashboard.kicker}>PROGRAMA DE INCLUSÃO PcD ACHÉ</span>
             <h1>Aprovados por turma<span>.</span></h1>
-            <p>Resultados da formação de Propagandista Trainee.</p>
+            <p>Desempenho e resultados da formação de Propagandista Trainee.</p>
           </div>
         </header>
 
@@ -111,31 +144,12 @@ export default function ApprovalPanel() {
           ))}
         </div>
 
-        <section className={dashboard.kpis} aria-label={`Indicadores da Turma ${selectedClass}`} aria-live="polite">
-          <article className={dashboard.kpiPrimary}>
-            <div><span>Registros ativos</span><UsersRound size={20} aria-hidden="true" /></div>
-            <strong>{diary.total}</strong><p>Participantes no diário</p>
-          </article>
-          <article>
-            <div><span>Frequência média</span><ClipboardList size={20} aria-hidden="true" /></div>
-            <strong>{formatAttendance(diary.averageAttendance)}</strong><p>Registros com frequência preenchida</p>
-          </article>
-          <article>
-            <div><span>Aprovados confirmados</span><Award size={20} aria-hidden="true" /></div>
-            <strong>{hasResults ? diary.approved.length : "—"}</strong><p>{hasResults ? "Aprovações registradas no diário" : "Aguardando confirmação"}</p>
-          </article>
-          <article>
-            <div><span>Resultados pendentes</span><Clock size={20} aria-hidden="true" /></div>
-            <strong>{diary.pending}</strong><p>Registros em consolidação</p>
-          </article>
-        </section>
-
-        <section className={`${dashboard.card} ${styles.results}`} aria-labelledby="lista-aprovados">
+        <section aria-labelledby="desempenho-turma">
           <div className={styles.resultsHeader}>
             <div>
-              <span className={dashboard.eyebrow}>TURMA {selectedClass}</span>
-              <h2 id="lista-aprovados">Lista de aprovados</h2>
-              <p className={styles.source}>{current ? current.filename : "Resumo do diário recebido"}</p>
+              <span className={dashboard.eyebrow}>DESEMPENHO DA TURMA</span>
+              <h2 id="desempenho-turma">Destaques da Turma {selectedClass}</h2>
+              <p className={styles.source}>{current ? current.filename : `Consolidado de ${diary.total} registros do diário`}</p>
             </div>
             <input ref={input} hidden type="file" accept=".xlsx,.xlsm" onChange={loadDiary} aria-label={`Diário da Turma ${selectedClass}`} />
             <button className={styles.uploadButton} type="button" disabled={reading !== null} onClick={() => input.current?.click()}>
@@ -148,6 +162,53 @@ export default function ApprovalPanel() {
             <p className={feedback.error ? styles.error : styles.feedback} role={feedback.error ? "alert" : "status"}>{feedback.message}</p>
           ) : null}
 
+          <div className={`${dashboard.kpis} ${styles.performanceGrid}`} aria-live="polite">
+            {metrics.map(({ field, label, caption, icon: Icon, showSum }) => {
+              const { sum, count } = diary.performance[field];
+              const value = count ? (field === "highlightWeeks" ? sum : sum / count) : null;
+              return (
+                <article key={field} className={field === "finalGrade" && count ? dashboard.kpiPrimary : undefined}>
+                  <div><span>{label}</span><Icon size={20} aria-hidden="true" /></div>
+                  <strong>{formatMetric(field, value)}</strong>
+                  <p>{showSum && count ? `Média por participante · soma ${numberFormat.format(sum)}` : caption}</p>
+                </article>
+              );
+            })}
+          </div>
+
+          {diary.participants.length ? (
+            <details key={selectedClass} className={styles.participantDetails}>
+              <summary>Ver indicadores por participante</summary>
+              <div className={styles.tableScroll}>
+                <table className={styles.table}>
+                  <thead><tr><th scope="col">Participante</th>{metrics.map(({ field, label }) => <th key={field} scope="col">{label}</th>)}</tr></thead>
+                  <tbody>{diary.participants.map((participant, index) => (
+                    <tr key={`${participant.name}-${index}`}>
+                      <th scope="row">{participant.name}</th>
+                      {metrics.map(({ field }) => <td key={field}>{formatMetric(field, participant[field])}</td>)}
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            </details>
+          ) : (
+            <p className={styles.note}>Carregue o diário da turma para consultar os indicadores por participante.</p>
+          )}
+        </section>
+
+        <section className={`${dashboard.card} ${styles.results}`} aria-labelledby="lista-aprovados">
+          <div className={styles.resultsHeader}>
+            <div>
+              <span className={dashboard.eyebrow}>TURMA {selectedClass}</span>
+              <h2 id="lista-aprovados">Lista de aprovados</h2>
+            </div>
+          </div>
+          <dl className={styles.approvalStats} aria-live="polite">
+            <div><dt>Registros ativos</dt><dd>{diary.total}</dd></div>
+            <div><dt>Aprovados confirmados</dt><dd>{hasResults ? diary.approved.length : "—"}</dd></div>
+            <div><dt>Resultados pendentes</dt><dd>{diary.pending}</dd></div>
+          </dl>
+
           {diary.approved.length ? (
             <div className={styles.tableScroll}>
               <table className={styles.table}>
@@ -155,8 +216,8 @@ export default function ApprovalPanel() {
                 <tbody>{diary.approved.map((participant, index) => (
                   <tr key={`${participant.name}-${index}`}>
                     <th scope="row">{participant.name}</th>
-                    <td>{formatAttendance(participant.attendance)}</td>
-                    <td>{participant.finalGrade === null ? "—" : gradeFormat.format(participant.finalGrade)}</td>
+                    <td>{formatMetric("attendance", participant.attendance)}</td>
+                    <td>{formatMetric("finalGrade", participant.finalGrade)}</td>
                     <td><span className={styles.approved}>Aprovação confirmada</span></td>
                   </tr>
                 ))}</tbody>
@@ -169,7 +230,6 @@ export default function ApprovalPanel() {
               <p>Carregue o diário atualizado com o resultado final ou a emissão do certificado registrada para consultar a lista.</p>
             </div>
           )}
-          <p className={styles.note}>O mesmo formato atende às três turmas. Selecione a turma e carregue a versão atualizada do seu diário.</p>
         </section>
 
         <footer className={dashboard.footer}>

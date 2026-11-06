@@ -57,6 +57,37 @@
 .source, .note { color: var(--bi-muted); overflow-wrap: anywhere; }
 .note { margin: 15px 0 0; font-size: 12px; }
 
+.performanceGrid.performanceGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.approvalStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0 0 18px;
+}
+
+.approvalStats dt { color: var(--bi-muted); font-size: 12px; }
+.approvalStats dd { margin: 4px 0 0; font-size: 24px; font-weight: 700; }
+
+.participantDetails {
+  margin-top: 14px;
+  padding: 10px 15px;
+  background: #fff;
+  border: 1px solid var(--bi-line);
+  border-radius: 10px;
+}
+
+.participantDetails summary {
+  padding: 4px 0;
+  color: var(--bi-brand);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.participantDetails .table th:first-child { min-width: 150px; }
+
 .uploadButton {
   display: inline-flex;
   align-items: center;
@@ -107,4 +138,6 @@
   .classes small { width: 100%; }
   .reference { font-size: 9px; }
   .empty { padding: 15px; }
+  .performanceGrid.performanceGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .approvalStats { gap: 8px; }
 }
