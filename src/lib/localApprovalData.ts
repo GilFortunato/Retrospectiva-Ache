@@ -1,10 +1,10 @@
-import { headers } from "next/headers";
 import { basename, isAbsolute } from "node:path";
 import type { LoadedDiaries } from "@/components/aprovados/ApprovalPanel";
 import type { TeacherHighlights } from "@/lib/approvalRanking";
 import { parseClassDiary, type ClassId } from "@/lib/classDiary";
 import { participantKey } from "@/lib/participantName";
 import { readWorkbook } from "@/lib/workbookSource";
+import { isLocalDevelopmentRequest } from "@/lib/localRequest";
 
 const classes: ClassId[] = ["A", "B", "C"];
 
@@ -31,14 +31,7 @@ function localTeacherHighlights(): TeacherHighlights {
 }
 
 export async function localApprovalData(): Promise<{ initialLoaded?: LoadedDiaries; teacherHighlights?: TeacherHighlights }> {
-  if (process.env.NODE_ENV !== "development") return {};
-  const request = await headers();
-  const host = request.get("host") ?? "";
-  const addresses = request.get("x-forwarded-for")?.split(",") ?? [];
-  const loopback = /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i;
-  if (!loopback.test(host) || addresses.some(address => !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(address.trim()))) {
-    return {};
-  }
+  if (!await isLocalDevelopmentRequest()) return {};
 
   const sources = await Promise.allSettled(classes.map(async classId => {
     const file = process.env[`BI_DIARIO_TURMA_${classId}`]?.trim();

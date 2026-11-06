@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ArrowDown, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowDown, ChevronDown, MessageCircle } from "lucide-react";
+import { localSurveyComments } from "./localComments";
 import survey from "./survey.json";
 import styles from "./satisfaction.module.css";
 
@@ -22,9 +23,15 @@ const chapters = [
   { title: "Repertório para a profissão", story: "Cenários, cases e postura profissional aproximaram a formação da rotina de propagandista. Parte do aprendizado também foi levada para a vida pessoal." },
   { title: "Conhecimento que fica", story: "Na última rodada disponível, os participantes falaram de uma nova visão de mercado e das conexões que criaram durante a formação." },
 ];
+const processNotes: Readonly<Record<number, string>> = {
+  4: "Uma resposta pediu um prazo menor, sem especificar a etapa. Outra sugeriu ampliar o encaminhamento para vagas após a formação.",
+  5: "Algumas respostas pediram um cronograma mais claro e informações sobre a abertura de vagas e as próximas etapas da seleção.",
+  6: "Perto do fim da formação, houve relatos de falta de datas, informações sobre vagas e retorno sobre as etapas do processo seletivo.",
+};
 
 const count = survey.reduce((sum, cycle) => sum + cycle.responses, 0);
 const rating = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const npsFormat = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: "exceptZero" });
 const day = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
 const average = (cycle: typeof survey[number], metric: number) => cycle.sums[metric] / cycle.responses;
 const totalAverage = (metric: number) => survey.reduce((sum, cycle) => sum + cycle.sums[metric], 0) / count;
@@ -35,11 +42,11 @@ function EvolutionChart() {
   return (
     <figure className={styles.chart}>
       <figcaption>
-        <h3>Como as notas evoluíram</h3>
+        <h2>Como as notas evoluíram</h2>
         <p>Notas de 0 a 10. O gráfico amplia a faixa de 9 a 10 para mostrar as variações.</p>
       </figcaption>
       <div className={styles.chartScroll} tabIndex={0} role="region" aria-label="Gráfico de evolução das notas">
-        <svg viewBox="0 0 650 220" role="img" aria-label="As três médias ficaram acima de 9,5. A recomendação atingiu o pico no ciclo 4 e caiu até o ciclo 6. As notas exatas aparecem por ciclo abaixo.">
+        <svg viewBox="0 0 650 220" role="img" aria-label="As três médias ficaram acima de 9,5. A recomendação atingiu o pico no ciclo 4 e caiu até o ciclo 6. As notas exatas aparecem nos cartões de cada ciclo.">
           {[10, 9.75, 9.5, 9.25, 9].map(value => (
             <g key={value}>
               <line x1="54" y1={y(value)} x2="616" y2={y(value)} stroke="#e6dce2" />
@@ -64,7 +71,8 @@ function EvolutionChart() {
   );
 }
 
-export default function SatisfactionPage() {
+export default async function SatisfactionPage() {
+  const comments = await localSurveyComments();
   return (
     <main className={styles.page}>
       <nav className={styles.nav} aria-label="Navegação da retrospectiva">
@@ -95,7 +103,6 @@ export default function SatisfactionPage() {
             </div>)}
           </dl>
         </div>
-        <EvolutionChart />
       </section>
 
       <section id="jornada" className={styles.journey} aria-labelledby="jornada-titulo">
@@ -103,38 +110,51 @@ export default function SatisfactionPage() {
         <h2 id="jornada-titulo">O que ficou de cada ciclo</h2>
         <p>Os ciclos têm cinco dias de aula como referência. As datas abaixo correspondem à coleta das respostas de cada rodada.</p>
         <ol className={styles.timeline}>
-          {survey.map((cycle, i) => (
-            <li key={cycle.start} className={styles.chapter}>
-              <div className={styles.number} aria-hidden="true">{String(i + 1).padStart(2, "0")}</div>
-              <div>
-                <p className={styles.kicker}>Ciclo {i + 1} · {cycle.responses} respostas</p>
-                <h3>{chapters[i].title}</h3>
-                <p className={styles.collection}>Coleta de {day.format(new Date(cycle.start))} a {day.format(new Date(cycle.end))}</p>
-                <p>{chapters[i].story}</p>
-                <dl className={styles.cycleScores}>
-                  {metrics.map(({ label, color }, m) => <div key={label}><dt>{label}</dt><dd style={{ color }}>{rating.format(average(cycle, m))}</dd></div>)}
-                </dl>
-                <div className={styles.quotes}>
-                  {cycle.quotes.map(quote => <blockquote key={quote}><MessageCircle size={17} aria-hidden="true" /><p>“{quote}”</p></blockquote>)}
+          {survey.map((cycle, i) => {
+            const groups = comments[i] ?? [];
+            const commentCount = groups.reduce((sum, group) => sum + group.comments.length, 0);
+            const promoters = cycle.high[1];
+            const passives = cycle.responses - promoters - cycle.detractors;
+            const nps = 100 * (promoters - cycle.detractors) / cycle.responses;
+            return (
+              <li key={cycle.start} className={styles.chapter}>
+                <div className={styles.number} aria-hidden="true">{String(i + 1).padStart(2, "0")}</div>
+                <div>
+                  <p className={styles.kicker}>Ciclo {i + 1} · {cycle.responses} respostas</p>
+                  <h3>{chapters[i].title}</h3>
+                  <p className={styles.collection}>Coleta de {day.format(new Date(cycle.start))} a {day.format(new Date(cycle.end))}</p>
+                  <p>{chapters[i].story}</p>
+                  <dl className={styles.cycleScores}>
+                    {metrics.map(({ label, color }, m) => <div key={label}><dt>{label}</dt><dd style={{ color }}>{rating.format(average(cycle, m))}</dd></div>)}
+                    <div><dt>NPS</dt><dd>{npsFormat.format(nps)}</dd></div>
+                  </dl>
+                  <p className={styles.collection}>{promoters} promotores · {passives} neutros · {cycle.detractors} detratores</p>
+                  <div className={styles.quotes}>
+                    {cycle.quotes.map(quote => <blockquote key={quote}><MessageCircle size={17} aria-hidden="true" /><p>“{quote}”</p></blockquote>)}
+                  </div>
+                  {processNotes[i + 1] ? <aside className={styles.processNote}>
+                    <h4>Cronograma e próximos passos</h4>
+                    <p>{processNotes[i + 1]}</p>
+                  </aside> : null}
+                  {commentCount ? <details className={styles.allComments}>
+                    <summary>Ver todos os comentários ({commentCount}) <ChevronDown size={16} aria-hidden="true" /></summary>
+                    {groups.filter(group => group.comments.length).map(({ label, comments }) => (
+                      <div key={label} className={styles.commentGroup}>
+                        <h4>{label}</h4>
+                        <ul>{comments.map((comment, index) => <li key={index}>{comment}</li>)}</ul>
+                      </div>
+                    ))}
+                  </details> : null}
                 </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ol>
       </section>
 
-      <section className={styles.closing} aria-labelledby="fechamento">
-        <Sparkles size={26} aria-hidden="true" />
-        <div>
-          <p className={styles.kicker}>Próximo capítulo</p>
-          <h2 id="fechamento">Pesquisa final</h2>
-          <p>O quadro registra 60 respostas na rodada final. Os indicadores e depoimentos dessa rodada aguardam a planilha correspondente.</p>
-        </div>
+      <section className={styles.evolution} aria-label="Síntese das avaliações">
+        <EvolutionChart />
       </section>
-      <footer className={styles.method}>
-        <h2>Como ler os dados</h2>
-        <p>As médias gerais foram calculadas sobre as 492 respostas válidas das seis planilhas. A base exclui um registro de teste e as linhas de resumo. As rodadas podem ter públicos diferentes, e a mesma pessoa pode ter respondido mais de uma vez ao longo do programa. Os depoimentos selecionados são anônimos e vieram de registros marcados com autorização de publicação no formulário.</p>
-      </footer>
     </main>
   );
 }

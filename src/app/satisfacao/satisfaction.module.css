@@ -23,17 +23,17 @@
 .heroStats span, .heroStats small { color: #f5dce9; font-size: .84rem; }
 .cta { padding: 10px 14px; border: 1px solid #f1bbd5; border-radius: 10px; }
 .cta:hover { background: #fff1fa; color: #522041; }
-.overview { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 24px; align-items: start; margin: 42px 0; }
+.overview { margin: 42px 0; }
 .page h2 { margin: 0 0 10px; font-size: clamp(1.65rem, 3vw, 2.35rem); line-height: 1.15; letter-spacing: -.025em; }
-.overview p, .journey p, .closing p, .method p, .chart p { line-height: 1.62; }
-.means { display: grid; gap: 8px; margin: 18px 0 0; }
+.overview p, .journey p, .chart p { line-height: 1.62; }
+.means { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 18px 0 0; }
 .means > div { background: white; border-left: 4px solid; border-radius: 8px; padding: 10px 14px; }
 .means dt, .cycleScores dt { font-size: .81rem; font-weight: 650; }
 .means dd, .cycleScores dd { margin: 2px 0 0; font-size: 1.5rem; font-weight: 750; }
 .means dd small { font-size: .7em; color: #62525e; }
 .means dd span { display: block; font-size: .8rem; font-weight: 400; color: #62525e; }
 .chart { margin: 0; padding: 20px; background: white; border: 1px solid #ede0e7; border-radius: 18px; min-width: 0; }
-.chart h3, .chapter h3 { margin: 0; font-size: 1.35rem; }
+.chart h2, .chapter h3 { margin: 0; font-size: 1.35rem; }
 .chart p { font-size: .85rem; color: #62525e; }
 .chartScroll { overflow-x: auto; }
 .chartScroll svg { display: block; width: 100%; min-width: 400px; height: auto; }
@@ -51,16 +51,22 @@
 .quotes blockquote { margin: 0; padding: 13px; border-radius: 10px; background: #fbf1f6; color: #4f3145; }
 .quotes svg { color: #972959; }
 .quotes p { margin: 6px 0 0; }
-.closing { display: flex; gap: 16px; padding: 22px; border-radius: 16px; background: #f0eaf5; }
-.closing svg { flex-shrink: 0; color: #74335d; }
-.closing p:last-child { margin-bottom: 0; }
-.method { margin-top: 26px; color: #62525e; font-size: .88rem; }
-.method h2 { font-size: 1.1rem; }
+.processNote { margin-top: 14px; padding: 9px 12px; border-left: 2px solid #d8bdcb; background: #faf7f8; color: #62525e; font-size: .88rem; }
+.processNote h4, .commentGroup h4 { margin: 0 0 4px; font-size: .9rem; }
+.processNote p { margin: 0; }
+.allComments { margin-top: 14px; padding-top: 10px; border-top: 1px solid #ede0e7; }
+.allComments summary { display: flex; width: fit-content; gap: 8px; align-items: center; color: #7e2857; cursor: pointer; font-weight: 650; list-style: none; }
+.allComments summary::-webkit-details-marker { display: none; }
+.allComments[open] summary svg { transform: rotate(180deg); }
+.commentGroup { margin-top: 14px; }
+.commentGroup ul { margin: 4px 0 0; padding-left: 1.25rem; }
+.commentGroup li { padding: 5px 0; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.evolution { margin-top: 24px; }
 .page :focus-visible { outline: 2px solid #a12865; outline-offset: 4px; }
 .hero :focus-visible { outline-color: white; }
-@media (max-width: 780px) { .overview { grid-template-columns: 1fr; } }
 @media (max-width: 540px) {
   .page { padding-inline: 14px; }
+  .means { grid-template-columns: 1fr; }
   .chapter { grid-template-columns: 1fr; }
   .quotes { grid-template-columns: 1fr; }
 }

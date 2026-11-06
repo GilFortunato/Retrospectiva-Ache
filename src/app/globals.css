@@ -45,10 +45,9 @@ body{min-height:100vh}
 .hero{text-align:left;max-width:520px;margin:0;transform:translateY(-48px)}
 .hero h1{font-size:clamp(3.7rem,5.3vw,6rem);line-height:.91;margin:.65rem 0 1.35rem;letter-spacing:-.045em}
 .hero>.homeIntro{color:var(--muted);font-size:1.05rem;line-height:1.55;max-width:470px}
-.retrospectiveAreas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;margin-top:1.3rem;text-align:left}
+.retrospectiveAreas{margin-top:1.3rem;text-align:left}
 .retrospectiveAreas a{display:grid;align-content:start;gap:.35rem;padding:.9rem;border-radius:15px;background:#fff;border:1px solid #f0d4e1;color:var(--wine)}
 .retrospectiveAreas a:hover,.retrospectiveAreas a:focus-visible{border-color:var(--magenta);background:#fff4f9}
-.retrospectiveAreas a:last-child:nth-child(odd){grid-column:1/-1}
 .retrospectiveAreaTitle{display:flex;align-items:center;gap:.4rem;font-weight:750}
 .retrospectiveAreaTitle svg{flex-shrink:0;color:var(--magenta)}
 .retrospectiveAreaTitle svg:last-child{margin-left:auto}
@@ -78,8 +77,8 @@ body{min-height:100vh}
 
 /* Nexus Aché — disposição assimétrica dos três acessos (sem alterar tamanho ou estilo) */
 .petalRebrand{--pos:translate(-150px,-205px);transform:var(--pos)}
-.petalProsper{--pos:translate(-215px,155px);transform:var(--pos)}
-.petalVagas{--pos:translate(255px,0);transform:var(--pos)}
+.petalCandidatos{--pos:translate(-215px,155px);transform:var(--pos)}
+.petalSatisfacao{--pos:translate(255px,0);transform:var(--pos)}
 .petalBi{--pos:translate(150px,-205px);transform:var(--pos)}
 
 .adminPage{min-height:100vh;padding:2rem 5vw 5rem;background:#fff8fb}
@@ -116,7 +115,6 @@ body{min-height:100vh}
   .adminGrid{grid-template-columns:1fr}
 }
 @media(max-width:560px){
-  .retrospectiveAreas{grid-template-columns:1fr}
   .topbar>div span{display:none}
   .nexus{grid-template-columns:1fr}
   .hero h1{font-size:3.5rem}
