@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { ArrowLeft, Award, ChartNoAxesCombined, ChevronDown, ClipboardList, FileSpreadsheet, Flag, MessageCircle, ShieldCheck, Star, Upload, UsersRound, type LucideIcon } from "lucide-react";
 import { rankApprovals, rankByGrade, type TeacherHighlights } from "@/lib/approvalRanking";
 import type { ClassDiary, ClassId, ClassPerformance, DiaryParticipant, PerformanceField } from "@/lib/classDiary";
@@ -55,6 +55,24 @@ function formatMetric(value: number | null) {
 }
 
 export type LoadedDiaries = Partial<Record<ClassId, { filename: string; results: ClassDiary }>>;
+type GradeStorageKeys = Partial<Record<ClassId, string>>;
+
+async function restoreGrades(diary: NonNullable<LoadedDiaries[ClassId]>, key: string) {
+  const raw = window.localStorage.getItem(key);
+  if (!raw) return diary;
+  const grades: unknown = JSON.parse(raw);
+  if (!Array.isArray(grades) || grades.length !== diary.results.approved.length
+    || !grades.every(grade => grade === null || typeof grade === "number")) {
+    throw new Error("As notas salvas estão em um formato incompatível.");
+  }
+
+  const { updateFinalGrades } = await import("@/lib/classDiary");
+  const participants = diary.results.approved.map(({ name }, index) => ({ name, finalGrade: grades[index] as number | null }));
+  return participants.some(person => person.finalGrade !== null)
+    ? { ...diary, results: updateFinalGrades(diary.results, { participants }) }
+    : diary;
+}
+
 type Feedback = { classId: ClassId; message: string; error: boolean };
 
 function RankingByGrade({ participants, highlights }: {
@@ -193,10 +211,11 @@ function Candidates({ loaded, teacherHighlights }: { loaded: LoadedDiaries; teac
   );
 }
 
-export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = {}, mode = "approvals" }: {
+export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = {}, mode = "approvals", gradeStorageKeys }: {
   initialLoaded?: LoadedDiaries;
   teacherHighlights?: TeacherHighlights;
   mode?: "approvals" | "candidates";
+  gradeStorageKeys?: GradeStorageKeys;
 }) {
   const candidateMode = mode === "candidates";
   const [selectedClass, setSelectedClass] = useState<ClassId>("C");
@@ -207,6 +226,36 @@ export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = 
   const uploadClass = useRef<ClassId>("C");
   const current = loaded[selectedClass];
   const diary = current?.results ?? initialDiaries[selectedClass];
+
+  useEffect(() => {
+    if (!gradeStorageKeys) return;
+    let active = true;
+
+    async function restoreClass(classId: ClassId, key: string) {
+      const base = initialLoaded[classId];
+      if (!base) return;
+      try {
+        const restored = await restoreGrades(base, key);
+        if (active) setLoaded(previous => ({ ...previous, [classId]: restored }));
+      } catch {
+        if (active) setFeedback({ classId, message: "Não foi possível ler as notas salvas neste navegador.", error: true });
+      }
+    }
+
+    function restoreStoredGrades(event?: StorageEvent) {
+      for (const classId of classIds) {
+        const key = gradeStorageKeys?.[classId];
+        if (key && (!event?.key || event.key === key)) void restoreClass(classId, key);
+      }
+    }
+
+    restoreStoredGrades();
+    window.addEventListener("storage", restoreStoredGrades);
+    return () => {
+      active = false;
+      window.removeEventListener("storage", restoreStoredGrades);
+    };
+  }, [gradeStorageKeys, initialLoaded]);
 
   async function loadDiary(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
@@ -219,19 +268,39 @@ export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = 
       return;
     }
 
+    const filename = file.name;
     setReading(classId);
     setFeedback(null);
     try {
       const { parseClassDiary, updateFinalGrades } = await import("@/lib/classDiary");
       const results = parseClassDiary(new Uint8Array(await file.arrayBuffer()), classId, { asApprovalList: true });
       if (candidateMode && !results.approved.length) throw new Error("O diário precisa ter ao menos um candidato.");
+      const base = initialLoaded[classId];
+      const key = gradeStorageKeys?.[classId];
       const existing = loaded[classId];
-      const updated = candidateMode && existing
-        ? { ...existing, results: updateFinalGrades(existing.results, results) }
-        : { filename: file.name, results };
-      setLoaded(previous => ({ ...previous, [classId]: updated }));
+
+      async function applyUpdate() {
+        const current = base && key ? await restoreGrades(base, key) : existing;
+        const updated = candidateMode && current
+          ? { ...current, results: updateFinalGrades(current.results, results) }
+          : { filename, results };
+        if (base && key) {
+          const overrides = updated.results.approved.map(({ finalGrade }, index) =>
+            finalGrade === base.results.approved[index].finalGrade ? null : finalGrade,
+          );
+          try {
+            window.localStorage.setItem(key, JSON.stringify(overrides));
+          } catch {
+            throw new Error("Não foi possível salvar as notas neste navegador. As notas anteriores foram preservadas.");
+          }
+        }
+        setLoaded(previous => ({ ...previous, [classId]: updated }));
+      }
+
+      if (key && navigator.locks) await navigator.locks.request(key, applyUpdate);
+      else await applyUpdate();
       setFeedback({ classId, message: candidateMode && existing
-        ? `Médias finais da Turma ${classId} atualizadas.`
+        ? `Médias finais da Turma ${classId} atualizadas. Ranking recalculado.`
         : `Diário da Turma ${classId} atualizado.`, error: false });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Não foi possível abrir o diário de classe.";
@@ -294,7 +363,8 @@ export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = 
         {candidateMode ? <>
           <section aria-labelledby="atualizar-notas">
             <h2 id="atualizar-notas">Notas por turma</h2>
-            <p className={styles.source}>Use a coluna Média final. A importação atualiza as notas nesta sessão e preserva as fichas.</p>
+            <p className={styles.source}>Use a coluna Média final. A importação atualiza as notas da turma e recalcula o ranking.
+              {gradeStorageKeys ? " As alterações ficam salvas neste navegador." : ""}</p>
             <div className={styles.candidateActions}>
               {classIds.map(classId => (
                 <button key={classId} className={styles.uploadButton} type="button" disabled={reading !== null} onClick={() => chooseFile(classId)}>

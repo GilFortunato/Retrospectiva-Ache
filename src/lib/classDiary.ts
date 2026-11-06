@@ -100,7 +100,9 @@ function summarizePerformance(participants: DiaryParticipant[]): ClassPerformanc
   })) as ClassPerformance;
 }
 
-export function updateFinalGrades(current: ClassDiary, incoming: ClassDiary): ClassDiary {
+export function updateFinalGrades(current: ClassDiary, incoming: {
+  participants: readonly Pick<DiaryParticipant, "name" | "finalGrade">[];
+}): ClassDiary {
   const names = new Set(current.approved.map(person => participantKey(person.name)));
   const seen = new Set<string>();
   const grades = new Map<string, number>();

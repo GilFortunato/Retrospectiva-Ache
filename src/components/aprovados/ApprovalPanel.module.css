@@ -76,7 +76,8 @@
 .candidateCount { margin: 0 0 12px; color: var(--bi-muted); }
 .candidateSubtitle { display: block; margin-top: 3px; color: var(--bi-muted); font-weight: 500; }
 .classFilter { display: grid; gap: 4px; font-size: 12px; font-weight: 600; }
-.classFilter select {
+.classFilter select,
+.classFilter input {
   padding: 8px 10px;
   border: 1px solid var(--bi-line);
   border-radius: 7px;
