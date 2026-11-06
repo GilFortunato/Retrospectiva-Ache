@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowDownToLine, ArrowLeft, ArrowUpRight, CalendarDays, ChartNoAxesCombined, ChevronDown, CircleHelp, Filter, GraduationCap, Layers3, Link2, MapPin, MapPinned, Printer, RefreshCw, RotateCcw, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, ArrowUpRight, Award, CalendarDays, ChartNoAxesCombined, ChevronDown, CircleHelp, Filter, GraduationCap, Layers3, Link2, MapPin, MapPinned, Printer, RefreshCw, RotateCcw, ShieldCheck, UsersRound } from "lucide-react";
 import { biData, csvSummary, emptyFilters, filterLabel, getSummary, normalizeFilters, percent, type BiDataset, type BiFilters, type Distribution } from "@/lib/biDemografico";
 import styles from "./DemographicDashboard.module.css";
 
@@ -153,7 +153,10 @@ export default function DemographicDashboard() {
       <Link href="/home" className={styles.logoLink} aria-label="Aché - voltar ao Nexus"><Image src="/brand/ache-logo-tagline.webp" alt="Aché" width={115} height={69} priority /></Link>
       <div className={styles.sidebarProgram}><span>PROGRAMA DE INCLUSÃO PcD</span><strong>Propagandista<br />Trainee</strong><span className={styles.edition}>RETROSPECTIVA 2026</span></div>
       <span className={styles.navTitle}>EXPLORAR O PAINEL</span>
-      <nav>{navigation.map(({ id, label, icon: Icon }) => <a key={id} href={`#${id}`} className={activeSection === id ? styles.navActive : ""} onClick={() => setActiveSection(id)} aria-current={activeSection === id ? "location" : undefined}><Icon size={18} aria-hidden="true" />{label}{activeSection === id ? <span className={styles.navDot} /> : null}</a>)}</nav>
+      <nav>
+        {navigation.map(({ id, label, icon: Icon }) => <a key={id} href={`#${id}`} className={activeSection === id ? styles.navActive : ""} onClick={() => setActiveSection(id)} aria-current={activeSection === id ? "location" : undefined}><Icon size={18} aria-hidden="true" />{label}{activeSection === id ? <span className={styles.navDot} /> : null}</a>)}
+        <Link href="/aprovados"><Award size={18} aria-hidden="true" />Aprovados</Link>
+      </nav>
       <div className={styles.sidebarBottom}><ShieldCheck size={20} aria-hidden="true" /><strong>Uma visão sobre pessoas.</strong><p>Indicadores consolidados, sem identificação individual.</p><Link href="/home"><ArrowLeft size={16} aria-hidden="true" />Voltar ao Nexus</Link></div>
     </aside>
 
