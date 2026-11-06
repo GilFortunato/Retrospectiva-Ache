@@ -14,6 +14,8 @@ export type DiaryParticipant = Record<PerformanceField, number | null> & {
   weeklyGrades: { week: number; grade: number }[];
 };
 
+export type FinalGradeEntry = Pick<DiaryParticipant, "name" | "finalGrade">;
+
 export type ClassDiary = {
   total: number;
   pending: number;
@@ -86,7 +88,7 @@ const inactiveStatuses = new Set(["desistente", "desistencia", "desligado", "des
 const scoreFields = ["activities", "exam", "extra"] as const;
 const summaryLabels = new Set(["total", "totais", "media", "media geral", "media da turma"]);
 
-function summarizePerformance(participants: DiaryParticipant[]): ClassPerformance {
+export function summarizePerformance(participants: DiaryParticipant[]): ClassPerformance {
   return Object.fromEntries(performanceFields.map(field => {
     let sum = 0;
     let count = 0;
@@ -100,14 +102,12 @@ function summarizePerformance(participants: DiaryParticipant[]): ClassPerformanc
   })) as ClassPerformance;
 }
 
-export function updateFinalGrades(current: ClassDiary, incoming: {
-  participants: readonly Pick<DiaryParticipant, "name" | "finalGrade">[];
-}): ClassDiary {
-  const names = new Set(current.approved.map(person => participantKey(person.name)));
+export function validateFinalGrades(approved: readonly Pick<DiaryParticipant, "name">[], incoming: readonly FinalGradeEntry[]) {
+  const names = new Set(approved.map(person => participantKey(person.name)));
   const seen = new Set<string>();
   const grades = new Map<string, number>();
-  if (names.size !== current.approved.length) throw new Error("Há nomes duplicados no diário atual.");
-  for (const person of incoming.participants) {
+  if (names.size !== approved.length) throw new Error("Há nomes duplicados no diário atual.");
+  for (const person of incoming) {
     const key = participantKey(person.name);
     if (!names.has(key) || seen.has(key)) {
       throw new Error("Há nomes duplicados ou que não correspondem à lista desta turma.");
@@ -120,7 +120,11 @@ export function updateFinalGrades(current: ClassDiary, incoming: {
     grades.set(key, person.finalGrade);
   }
   if (!grades.size) throw new Error("Inclua ao menos uma média final válida na planilha.");
+  return grades;
+}
 
+export function updateFinalGrades(current: ClassDiary, incoming: { participants: readonly FinalGradeEntry[] }): ClassDiary {
+  const grades = validateFinalGrades(current.approved, incoming.participants);
   const apply = (person: DiaryParticipant) => {
     const grade = grades.get(participantKey(person.name));
     return grade === undefined ? person : { ...person, finalGrade: grade };
