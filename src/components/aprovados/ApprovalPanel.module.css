@@ -57,8 +57,10 @@
 .source, .note { color: var(--bi-muted); overflow-wrap: anywhere; }
 .note { margin: 15px 0 0; font-size: 12px; }
 
-.performanceGrid.performanceGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+@media (min-width: 581px) {
+  .performanceGrid.performanceGrid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .performanceGrid > article { grid-column: span 2; }
+  .performanceGrid > article:nth-child(-n + 2) { grid-column: span 3; }
 }
 
 .approvalStats {

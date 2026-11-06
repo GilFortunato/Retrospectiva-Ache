@@ -40,7 +40,6 @@ const initialDiaries: Record<ClassId, ClassDiary> = {
 
 const metrics: { field: PerformanceField; label: string; caption: string; icon: LucideIcon; showSum?: boolean }[] = [
   { field: "finalGrade", label: "Média final", caption: "Média das notas da turma", icon: Award },
-  { field: "attendance", label: "Frequência", caption: "Média dos percentuais registrados", icon: ClipboardList },
   { field: "highlightWeeks", label: "Semanas em destaque", caption: "Soma dos destaques individuais", icon: Star },
   { field: "communication", label: "Comunicação", caption: "Média da competência", icon: MessageCircle, showSum: true },
   { field: "initiative", label: "Protagonismo", caption: "Média da competência", icon: Flag, showSum: true },
@@ -49,10 +48,8 @@ const metrics: { field: PerformanceField; label: string; caption: string; icon: 
 
 const numberFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 
-function formatMetric(field: PerformanceField, value: number | null) {
-  if (value === null) return "—";
-  const formatted = numberFormat.format(value);
-  return field === "attendance" ? `${formatted}%` : formatted;
+function formatMetric(value: number | null) {
+  return value === null ? "—" : numberFormat.format(value);
 }
 
 type LoadedDiary = { filename: string; results: ClassDiary };
@@ -169,7 +166,7 @@ export default function ApprovalPanel() {
               return (
                 <article key={field} className={field === "finalGrade" && count ? dashboard.kpiPrimary : undefined}>
                   <div><span>{label}</span><Icon size={20} aria-hidden="true" /></div>
-                  <strong>{formatMetric(field, value)}</strong>
+                  <strong>{formatMetric(value)}</strong>
                   <p>{showSum && count ? `Média por participante · soma ${numberFormat.format(sum)}` : caption}</p>
                 </article>
               );
@@ -185,7 +182,7 @@ export default function ApprovalPanel() {
                   <tbody>{diary.participants.map((participant, index) => (
                     <tr key={`${participant.name}-${index}`}>
                       <th scope="row">{participant.name}</th>
-                      {metrics.map(({ field }) => <td key={field}>{formatMetric(field, participant[field])}</td>)}
+                      {metrics.map(({ field }) => <td key={field}>{formatMetric(participant[field])}</td>)}
                     </tr>
                   ))}</tbody>
                 </table>
@@ -212,12 +209,11 @@ export default function ApprovalPanel() {
           {diary.approved.length ? (
             <div className={styles.tableScroll}>
               <table className={styles.table}>
-                <thead><tr><th scope="col">Participante</th><th scope="col">Frequência</th><th scope="col">Média final</th><th scope="col">Resultado</th></tr></thead>
+                <thead><tr><th scope="col">Participante</th><th scope="col">Média final</th><th scope="col">Resultado</th></tr></thead>
                 <tbody>{diary.approved.map((participant, index) => (
                   <tr key={`${participant.name}-${index}`}>
                     <th scope="row">{participant.name}</th>
-                    <td>{formatMetric("attendance", participant.attendance)}</td>
-                    <td>{formatMetric("finalGrade", participant.finalGrade)}</td>
+                    <td>{formatMetric(participant.finalGrade)}</td>
                     <td><span className={styles.approved}>Aprovação confirmada</span></td>
                   </tr>
                 ))}</tbody>
