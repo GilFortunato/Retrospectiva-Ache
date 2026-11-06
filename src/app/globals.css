@@ -77,7 +77,7 @@ body{min-height:100vh}
 .petal7{--pos:translate(-340px,-230px);transform:var(--pos)}
 
 /* Nexus Aché — disposição assimétrica dos três acessos (sem alterar tamanho ou estilo) */
-.petalDocumentacoes{--pos:translate(-150px,-205px);transform:var(--pos)}
+.petalDocumentacoes{--pos:translate(-150px,-205px);transform:var(--pos);font-size:.875rem}
 .petalCandidatos{--pos:translate(-215px,155px);transform:var(--pos)}
 .petalSatisfacao{--pos:translate(255px,0);transform:var(--pos)}
 .petalBi{--pos:translate(150px,-205px);transform:var(--pos)}

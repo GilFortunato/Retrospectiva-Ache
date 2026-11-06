@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ChartNoAxesCombined, ClipboardList, FileText, UsersRound, Video } from "lucide-react";
+import { ArrowLeft, Award, ChartNoAxesCombined, ClipboardList, FileText, UsersRound, Video } from "lucide-react";
+import { certificateFolderUrl } from "@/data/certificateFolder";
 import { currentPortalSession } from "@/lib/portalAuth";
 import styles from "./documentacoes.module.css";
 
@@ -34,7 +35,11 @@ export default async function DocumentacoesPage() {
   if (!session) redirect("/login");
   if (session.must_change_password) redirect("/trocar-senha");
   const driveFolders = readFolders();
-  const resources = [...driveFolders, { label: "Comunidade", href: "/comunidade", icon: Video }];
+  const resources = [
+    ...driveFolders,
+    { label: "Certificados", href: certificateFolderUrl, icon: Award },
+    { label: "Comunidade", href: "/comunidade", icon: Video },
+  ];
 
   return (
     <main className="communityPage">
@@ -51,15 +56,25 @@ export default async function DocumentacoesPage() {
       <section className={styles.content} aria-labelledby="documentacoes-titulo">
         <p className="eyebrow">Retrospectiva Aché</p>
         <h1 id="documentacoes-titulo">Documentações</h1>
-        <p>Consulte os materiais do programa no Drive ou assista aos vídeos da Comunidade. Cada botão abre uma nova aba.</p>
+        <p>Consulte os materiais do programa no Drive ou assista aos vídeos da Comunidade. As pastas do Drive abrem em nova aba.</p>
         {driveFolders.length < folders.length ? <p role="status">Algumas pastas do Drive estão temporariamente indisponíveis.</p> : null}
         <nav className={styles.resources} aria-label="Materiais e vídeos do programa">
-          {resources.map(({ label, href, icon: Icon }) => (
-            <a key={href} className={`nexusPetal ${styles.resource}`} href={href} target="_blank" rel="noopener noreferrer" aria-label={`${label} (abre em nova aba)`}>
-              <Icon size={28} strokeWidth={1.65} aria-hidden="true" />
-              <span>{label}</span>
-            </a>
-          ))}
+          {resources.map(({ label, href, icon: Icon }) => {
+            const external = href.startsWith("https://");
+            return (
+              <Link
+                key={href}
+                className={`nexusPetal ${styles.resource}`}
+                href={href}
+                target={external ? "_blank" : undefined}
+                rel={external ? "noopener noreferrer" : undefined}
+                aria-label={external ? `${label} (abre em nova aba)` : undefined}
+              >
+                <Icon size={28} strokeWidth={1.65} aria-hidden="true" />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
         </nav>
       </section>
     </main>

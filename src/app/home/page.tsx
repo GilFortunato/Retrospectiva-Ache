@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { certificateFolderUrl } from "@/data/certificateFolder";
 import {
   FolderOpen,
   ShieldCheck,
@@ -58,7 +59,7 @@ export default function HomePage() {
           <h1>Mais que contratar,<br />queremos incluir.</h1>
           <p className="homeIntro">Explore os módulos da experiência e os indicadores do programa.</p>
           <nav className="retrospectiveAreas" aria-label="Áreas da retrospectiva">
-            <Link href="https://drive.google.com/drive/folders/1VAjnw7FDUbEQhoZSBbxIyrE5wSTfoHcp?usp=sharing">
+            <Link href={certificateFolderUrl}>
               <span className="retrospectiveAreaTitle"><Award size={18} aria-hidden="true" />Certificado<ArrowUpRight size={15} aria-hidden="true" /></span>
               <span className="retrospectiveAreaDescription">Acesse a pasta de certificados no Google Drive.</span>
             </Link>
