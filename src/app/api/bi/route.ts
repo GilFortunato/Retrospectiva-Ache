@@ -1,7 +1,7 @@
 import { isAbsolute } from "node:path";
 import { NextResponse } from "next/server";
 import type { BiApprovals } from "@/lib/biDemografico";
-import { parseDemographicDashboard } from "@/lib/biWorkbook";
+import { parseDemographicDashboard, type ApprovedRoster } from "@/lib/biWorkbook";
 import { parseClassDiary, type ClassId } from "@/lib/classDiary";
 import { driveFileIdPattern, readWorkbook } from "@/lib/workbookSource";
 
@@ -10,6 +10,20 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 const headers = { "Cache-Control": "no-store, max-age=0", "X-Content-Type-Options": "nosniff" };
 const classes: ClassId[] = ["A", "B", "C"];
+
+function readApprovedRoster(config: string): ApprovedRoster | null {
+  try {
+    const { key, digests } = JSON.parse(config) as { key?: unknown; digests?: unknown };
+    if (typeof key === "string" && /^[a-f0-9]{64}$/.test(key)
+      && Array.isArray(digests) && digests.length && digests.every(digest => typeof digest === "string" && /^[a-f0-9]{64}$/.test(digest))) {
+      const unique = new Set<string>(digests);
+      if (unique.size === digests.length) return { key, digests: unique };
+    }
+  } catch {
+    // Keep invalid server configuration out of the response.
+  }
+  return null;
+}
 
 async function readApprovals() {
   const results = await Promise.allSettled(classes.map(async classId => {
@@ -49,11 +63,13 @@ export async function GET() {
   if (!source) return NextResponse.json({ error: "A fonte demográfica ainda não foi configurada para este painel." }, { status: 503, headers });
   try {
     const [bytes, lists] = await Promise.all([readWorkbook(source), readApprovals()]);
+    const rosterConfig = process.env.BI_APROVADOS_RECORTE?.trim();
+    const roster = rosterConfig && !lists.classes.length && !lists.error ? readApprovedRoster(rosterConfig) : undefined;
     const aliases = readApprovedNameAliases();
-    const error = lists.error ?? (aliases === null ? "A configuração de nomes equivalentes dos aprovados está inválida." : undefined);
-    const names = lists.classes.length && !error ? lists.names : undefined;
-    const { data, approved, unmatched } = parseDemographicDashboard(bytes, names, aliases ?? undefined);
-    const approvals: BiApprovals = { data: approved, classes: lists.classes, partial: lists.partial, unmatched, error };
+    const error = lists.error ?? (roster === null || aliases === null ? "A configuração do recorte de aprovados está inválida." : undefined);
+    const approvedList = error ? undefined : roster ?? (lists.classes.length ? lists.names : undefined);
+    const { data, approved, unmatched } = parseDemographicDashboard(bytes, approvedList, aliases ?? undefined);
+    const approvals: BiApprovals = { data: approved, classes: roster ? classes : lists.classes, partial: !roster && lists.partial, unmatched, error };
     return NextResponse.json({ data, approvals, fetchedAt: new Date().toISOString() }, { headers });
   } catch (error) {
     // Never expose provider HTML, raw workbook data, file identifiers or credentials.

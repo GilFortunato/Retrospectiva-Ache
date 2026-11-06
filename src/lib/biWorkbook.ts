@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import type { BiDataset, BiSummary, Distribution } from "@/lib/biDemografico";
 import { openExcelWorkbook, type WorkbookRow } from "@/lib/excelWorkbook";
 import { participantKey } from "@/lib/participantName";
@@ -5,13 +6,19 @@ import { participantKey } from "@/lib/participantName";
 const MISSING = "Não informado";
 const MINIMUM_COHORT = 5;
 
+export type ApprovedRoster = { key: string; digests: ReadonlySet<string> };
+
+export function approvedNameDigest(name: string, key: string) {
+  return createHmac("sha256", key).update(participantKey(name)).digest("hex");
+}
+
 export function parseDemographicWorkbook(bytes: Uint8Array): BiDataset {
   return parseDemographicDashboard(bytes).data;
 }
 
 export function parseDemographicDashboard(
   bytes: Uint8Array,
-  approvedNames?: readonly string[],
+  approvedList?: readonly string[] | ApprovedRoster,
   approvedNameAliases: Readonly<Record<string, string>> = {},
 ) {
   const { readSheet } = openExcelWorkbook(bytes);
@@ -88,7 +95,7 @@ export function parseDemographicDashboard(
   }
 
   const data = createDataset(records);
-  if (!approvedNames) return { data, approved: null, unmatched: 0 };
+  if (!approvedList) return { data, approved: null, unmatched: 0 };
 
   const uniqueRecords = new Map<string, WorkbookRow | null>();
   for (const row of records) {
@@ -96,13 +103,16 @@ export function parseDemographicDashboard(
     uniqueRecords.set(key, uniqueRecords.has(key) ? null : row);
   }
   const aliases = new Map(Object.entries(approvedNameAliases).map(([name, target]) => [participantKey(name), participantKey(target)]));
-  const names = new Set(approvedNames.map(participantKey).filter(Boolean).map(name => {
-    if (uniqueRecords.has(name)) return name;
-    const target = aliases.get(name);
-    return target && uniqueRecords.get(target) ? target : name;
-  }));
+  const roster = "digests" in approvedList ? approvedList : null;
+  const names = "digests" in approvedList
+    ? [...uniqueRecords.keys()].filter(name => approvedList.digests.has(approvedNameDigest(name, approvedList.key)))
+    : [...new Set(approvedList.map(participantKey).filter(Boolean).map(name => {
+      if (uniqueRecords.has(name)) return name;
+      const target = aliases.get(name);
+      return target && uniqueRecords.get(target) ? target : name;
+    }))];
   const approvedRows = [...names].map(name => uniqueRecords.get(name)).filter((row): row is WorkbookRow => Boolean(row));
-  const unmatched = names.size - approvedRows.length;
+  const unmatched = (roster?.digests.size ?? names.length) - approvedRows.length;
   const missingDemographics = Array.from({ length: unmatched }, (): WorkbookRow => ({}));
   return { data, approved: createDataset([...approvedRows, ...missingDemographics], data, unmatched), unmatched };
 }

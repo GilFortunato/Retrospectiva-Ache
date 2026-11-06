@@ -18,7 +18,7 @@ function loadTs(relative) {
   return loaded.exports;
 }
 const { biData, getSummary, normalizeFilters, csvSummary, emptyFilters } = loadTs("src/lib/biDemografico.ts");
-const { parseDemographicWorkbook, parseDemographicDashboard } = loadTs("src/lib/biWorkbook.ts");
+const { approvedNameDigest, parseDemographicWorkbook, parseDemographicDashboard } = loadTs("src/lib/biWorkbook.ts");
 const { rankApprovals, rankByGrade } = loadTs("src/lib/approvalRanking.ts");
 const { updateFinalGrades } = loadTs("src/lib/classDiary.ts");
 
@@ -130,6 +130,18 @@ test("verified name aliases merge a unique demographic record and preserve exact
   assert.equal(result.approved.slices["sp:Capital"].total, 6);
   assert.equal(result.unmatched, 1);
   assert.doesNotMatch(JSON.stringify(result), /Grafia alternativa|Pessoa de teste|Sem registro/);
+});
+
+test("a server-side approved roster excludes the general population from the approved distributions", () => {
+  const key = "a".repeat(64);
+  const digests = new Set(Array.from({ length: 6 }, (_, index) => approvedNameDigest(`PESSOA  DE TESTE ${index + 1}`, key)));
+  const result = parseDemographicDashboard(workbook(12), { key, digests });
+  assert.equal(result.data.slices.all.total, 12);
+  assert.equal(result.approved.slices.all.total, 6);
+  assert.equal(result.approved.slices["sp:Capital"].total, 6);
+  assert.equal(result.unmatched, 0);
+  assert.equal(result.approved.slices.all.distributions.gender.reduce((total, item) => total + item.count, 0), 6);
+  assert.ok(!JSON.stringify(result).includes([...digests][0]));
 });
 
 test("the approved ranking compares common weeks, shares tied positions and uses final grades when available", () => {
