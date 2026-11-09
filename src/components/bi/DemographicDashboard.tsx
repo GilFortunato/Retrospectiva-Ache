@@ -4,13 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowDownToLine, ArrowLeft, ArrowUpRight, Award, CalendarDays, ChartNoAxesCombined, ChevronDown, CircleHelp, Filter, GraduationCap, Layers3, Link2, MapPin, MapPinned, MessageCircle, Printer, RefreshCw, RotateCcw, ShieldCheck, UsersRound } from "lucide-react";
-import { biData, csvSummary, emptyFilters, filterLabel, getSummary, normalizeFilters, percent, type BiApprovals, type BiDataset, type BiFilters, type Distribution } from "@/lib/biDemografico";
+import { biData, csvDisability, csvSummary, disabilityGroups, emptyFilters, filterLabel, getSummary, isDisabilityGroup, normalizeFilters, percent, type BiApprovals, type BiDataset, type BiFilters, type DisabilityGroup, type Distribution } from "@/lib/biDemografico";
 import styles from "./DemographicDashboard.module.css";
 
 const palette = ["#aa185d", "#ed8553", "#96b3a1", "#9d88b3", "#d7b86b", "#bdc3ce"];
 const formatDate = (date: string) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(date + "T12:00:00Z"));
 const number = (value: number | null) => value === null ? "—" : new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(value);
 type Population = "geral" | "aprovados";
+const groupKeys = Object.keys(disabilityGroups).filter(isDisabilityGroup);
 
 function Bars({ items, total, color = "#aa185d", onSelect }: { items: Distribution; total: number; color?: string; onSelect?: (label: string) => void }) {
   if (!items.length) return <p className={styles.empty}>Não há registros neste recorte.</p>;
@@ -60,6 +61,7 @@ export default function DemographicDashboard() {
   const [approvals, setApprovals] = useState<BiApprovals | null>(null);
   const [population, setPopulation] = useState<Population>("geral");
   const [filters, setFilters] = useState<BiFilters>(emptyFilters);
+  const [disability, setDisability] = useState<DisabilityGroup | "">("");
   const [showEducation, setShowEducation] = useState(false);
   const [status, setStatus] = useState("");
   const [activeSection, setActiveSection] = useState("overview");
@@ -72,6 +74,14 @@ export default function DemographicDashboard() {
   const dataset = selectedDataset ?? generalDataset;
   const summary = getSummary(filters, dataset);
   const overview = dataset.slices.all;
+  const disabilityCounts = selectedDataset?.disabilityCounts;
+  const selectedCount = disability ? disabilityCounts?.[disability] : undefined;
+  const visibleGroups = disability ? [disability] : groupKeys;
+  const disabilityBars = visibleGroups.flatMap(group => {
+    const count = disabilityCounts?.[group];
+    return typeof count === "number" ? [{ label: disabilityGroups[group], count }] : [];
+  });
+  const hiddenGroups = visibleGroups.filter(group => disabilityCounts?.[group] === null);
   const distributions = summary.distributions;
   const geographicFilter = Boolean(filters.region || filters.state || filters.spRegion);
   const geography = filterLabel(filters, dataset);
@@ -108,23 +118,27 @@ export default function DemographicDashboard() {
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     setPopulation(query.get("publico") === "aprovados" ? "aprovados" : "geral");
-    setFilters(normalizeFilters({ region: query.get("regiao") || "", state: query.get("uf") || "", spRegion: query.get("sp") || "" }));
+    const group = query.get("tipo") || "";
+    if (isDisabilityGroup(group)) setDisability(group);
+    else setFilters(normalizeFilters({ region: query.get("regiao") || "", state: query.get("uf") || "", spRegion: query.get("sp") || "" }));
     void refreshData();
     const interval = setInterval(() => { if (document.visibilityState === "visible") void refreshData(); }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [refreshData]);
 
-  function updateFilters(next: BiFilters, nextPopulation = population) {
-    const clean = normalizeFilters(next, generalDataset);
+  function updateFilters(next: BiFilters, nextPopulation = population, nextDisability = disability) {
+    const clean = nextDisability ? emptyFilters : normalizeFilters(next, generalDataset);
     setFilters(clean);
     setPopulation(nextPopulation);
+    setDisability(nextDisability);
     setStatus("");
     const url = new URL(window.location.href);
-    for (const name of ["publico", "regiao", "uf", "sp"]) url.searchParams.delete(name);
+    for (const name of ["publico", "regiao", "uf", "sp", "tipo"]) url.searchParams.delete(name);
     if (nextPopulation === "aprovados") url.searchParams.set("publico", nextPopulation);
     if (clean.region) url.searchParams.set("regiao", clean.region);
     if (clean.state) url.searchParams.set("uf", clean.state);
     if (clean.spRegion) url.searchParams.set("sp", clean.spRegion);
+    if (nextDisability) url.searchParams.set("tipo", nextDisability);
     window.history.replaceState(null, "", url);
   }
 
@@ -134,12 +148,15 @@ export default function DemographicDashboard() {
   }
 
   function downloadCsv() {
-    if (!selectedDataset) return;
-    const blob = new Blob([csvSummary(summary, selection, dataset)], { type: "text/csv;charset=utf-8;" });
+    if (!selectedDataset || (disability && typeof selectedCount !== "number")) return;
+    const contents = disability && typeof selectedCount === "number"
+      ? csvDisability(disability, approvedSelected ? "Aprovados" : "Geral", selectedCount, overview.total)
+      : csvSummary(summary, selection, dataset);
+    const blob = new Blob([contents], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "BI_Ache_" + (approvedSelected ? "Aprovados_" : "") + (filters.spRegion || filters.state || filters.region || "Brasil").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "_") + ".csv";
+    anchor.download = "BI_Ache_" + (approvedSelected ? "Aprovados_" : "") + (disability || filters.spRegion || filters.state || filters.region || "Brasil").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "_") + ".csv";
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
@@ -152,7 +169,10 @@ export default function DemographicDashboard() {
     catch { setStatus("Copie o endereço da barra do navegador para compartilhar este recorte."); }
   }
 
-  const navigation = [
+  const navigation = disability ? [
+    { id: "overview", label: "Visão geral", icon: ChartNoAxesCombined },
+    { id: "disability", label: "Deficiência e neurodivergência", icon: UsersRound },
+  ] : [
     { id: "overview", label: "Visão geral", icon: ChartNoAxesCombined },
     { id: "profile", label: "Perfil demográfico", icon: UsersRound },
     { id: "geography", label: "Geografia", icon: MapPinned },
@@ -178,16 +198,20 @@ export default function DemographicDashboard() {
       <div className={styles.topbar}><span><Link href="/home">Retrospectiva</Link><span>/</span><strong>BI demográfico</strong></span><span className={styles.topbarRight}><i aria-hidden="true" />{refreshError ? "ÚLTIMA CARGA" : lastFetched ? "DADOS ATUALIZADOS" : "BASE CONSOLIDADA"}</span></div>
       <header className={styles.pageHeader} id="overview">
         <div><span className={styles.kicker}>PROGRAMA DE INCLUSÃO PcD ACHÉ</span><h1>A inclusão em números<span>.</span></h1><p>Quem são as pessoas que fazem parte desta jornada.</p></div>
-        <div className={styles.headerActions}><span className={styles.reference}><CalendarDays size={15} aria-hidden="true" />Referência: {dateLabel}</span><div><button type="button" className={styles.iconButton} onClick={() => void copyLink()} aria-label="Copiar link deste recorte" title="Copiar link do recorte"><Link2 size={17} aria-hidden="true" /></button><button type="button" className={styles.iconButton} onClick={() => window.print()} disabled={!selectedDataset} aria-label="Imprimir painel" title="Imprimir painel"><Printer size={17} aria-hidden="true" /></button><button type="button" className={styles.exportButton} onClick={downloadCsv} disabled={!selectedDataset}><ArrowDownToLine size={16} aria-hidden="true" />Exportar resumo</button></div></div>
+        <div className={styles.headerActions}><span className={styles.reference}><CalendarDays size={15} aria-hidden="true" />Referência: {dateLabel}</span><div><button type="button" className={styles.iconButton} onClick={() => void copyLink()} aria-label="Copiar link deste recorte" title="Copiar link do recorte"><Link2 size={17} aria-hidden="true" /></button><button type="button" className={styles.iconButton} onClick={() => window.print()} disabled={!selectedDataset} aria-label="Imprimir painel" title="Imprimir painel"><Printer size={17} aria-hidden="true" /></button><button type="button" className={styles.exportButton} onClick={downloadCsv} disabled={!selectedDataset || (Boolean(disability) && typeof selectedCount !== "number")}><ArrowDownToLine size={16} aria-hidden="true" />Exportar resumo</button></div></div>
       </header>
 
       <section className={styles.filterPanel} aria-label="Filtros do painel">
-        <div className={styles.filterIntro}><span><Filter size={17} aria-hidden="true" />Seu recorte</span><small>Explore por público e território</small></div>
+        <div className={styles.filterIntro}><span><Filter size={17} aria-hidden="true" />Seu recorte</span><small>Explore a base do programa</small></div>
         <label>Público<select value={population} onChange={event => updateFilters(filters, event.target.value === "aprovados" ? "aprovados" : "geral")}><option value="geral">Geral</option><option value="aprovados">Aprovados</option></select></label>
-        <label>Região do Brasil<select value={filters.region} onChange={event => updateFilters({ region: event.target.value, state: "", spRegion: "" })}><option value="">Todas as regiões</option>{dataset.filters.regions.map(region => <option key={region}>{region}</option>)}</select></label>
-        <label>Unidade federativa<select value={filters.state} onChange={event => updateFilters({ ...filters, state: event.target.value, spRegion: "" })}><option value="">Todas as UFs</option>{stateOptions.map(state => <option key={state.value} value={state.value}>{state.value}</option>)}</select></label>
-        <label>Região de São Paulo<select value={filters.spRegion} disabled={!canSelectSp} onChange={event => updateFilters({ ...filters, spRegion: event.target.value })}><option value="">Todas as regiões de SP</option>{dataset.filters.spRegions.map(region => <option key={region}>{region}</option>)}</select></label>
-        <button type="button" className={styles.resetButton} disabled={!geographicFilter && !approvedSelected} onClick={() => updateFilters(emptyFilters, "geral")} title="Limpar filtros" aria-label="Limpar filtros"><RotateCcw size={17} aria-hidden="true" /></button>
+        <label>Deficiência ou neurodivergência<select value={disability} disabled={!disability && !disabilityCounts} onChange={event => {
+          const group = event.target.value;
+          updateFilters(filters, population, isDisabilityGroup(group) ? group : "");
+        }}><option value="">Todas as categorias</option>{groupKeys.map(group => <option key={group} value={group}>{disabilityGroups[group]}</option>)}</select></label>
+        <label>Região do Brasil<select value={filters.region} disabled={Boolean(disability)} onChange={event => updateFilters({ region: event.target.value, state: "", spRegion: "" })}><option value="">Todas as regiões</option>{dataset.filters.regions.map(region => <option key={region}>{region}</option>)}</select></label>
+        <label>Unidade federativa<select value={filters.state} disabled={Boolean(disability)} onChange={event => updateFilters({ ...filters, state: event.target.value, spRegion: "" })}><option value="">Todas as UFs</option>{stateOptions.map(state => <option key={state.value} value={state.value}>{state.value}</option>)}</select></label>
+        <label>Região de São Paulo<select value={filters.spRegion} disabled={Boolean(disability) || !canSelectSp} onChange={event => updateFilters({ ...filters, spRegion: event.target.value })}><option value="">Todas as regiões de SP</option>{dataset.filters.spRegions.map(region => <option key={region}>{region}</option>)}</select></label>
+        <button type="button" className={styles.resetButton} disabled={!geographicFilter && !approvedSelected && !disability} onClick={() => updateFilters(emptyFilters, "geral", "")} title="Limpar filtros" aria-label="Limpar filtros"><RotateCcw size={17} aria-hidden="true" /></button>
       </section>
 
       <div className={styles.liveToolbar}>
@@ -204,6 +228,17 @@ export default function DemographicDashboard() {
         {approvals.partial ? " Há listas de turma pendentes." : ""}
         {approvals.unmatched > 0 ? ` ${approvals.unmatched} ${approvals.unmatched === 1 ? "pessoa incluída" : "pessoas incluídas"} no total com dados demográficos não informados.` : ""}
       </p> : null}
+      {disability || (disabilityCounts && !geographicFilter) ? <section id="disability" className={styles.section} aria-label="Deficiência e neurodivergência" aria-live="polite">
+        <article className={styles.card}>
+          <ChartHeading eyebrow={approvedSelected ? "APROVADOS · BRASIL" : "BASE GERAL · BRASIL"} title={disability ? disabilityGroups[disability] : "Deficiência e neurodivergência"} />
+          {disabilityCounts ? <>
+            {disabilityBars.length ? <Bars items={disabilityBars} total={overview.total} /> : null}
+            {hiddenGroups.length ? <p className={styles.dataNote}>Totais protegidos {disability ? "nesta categoria" : `em ${hiddenGroups.map(group => disabilityGroups[group]).join(", ")}`}.</p> : null}
+          </> : <p className={styles.dataNote}>{refreshing ? "Carregando as categorias." : "O recorte por deficiência está indisponível neste momento."}</p>}
+          <p className={styles.dataNote}>Fonte: Squad Aché. A visão por categoria é nacional e usa apenas totais consolidados. Alguns totais ficam protegidos para resguardar grupos pequenos.</p>
+        </article>
+      </section> : null}
+      {!disability ? <>
       <div className={styles.selectionLine}><span><i aria-hidden="true" />{selection}</span><span aria-live="polite" aria-atomic="true">{summary.total} de {overview.total} {approvedSelected ? "aprovados" : "participantes"} · {percent(summary.total, overview.total)} {approvedSelected ? "do grupo" : "da base"}</span></div>
 
       <section className={styles.kpis} aria-label="Indicadores do recorte">
@@ -248,6 +283,7 @@ export default function DemographicDashboard() {
         <p><strong>Localidades.</strong> O painel conta entradas únicas com informação de cidade ou localidade. As macrorregiões de SP seguem o agrupamento analítico do arquivo.</p>
         <p><strong>Dados consolidados.</strong> A página e a exportação contêm apenas resumos estatísticos. O detalhamento de grupos com menos de {dataset.source.minimumCohort} pessoas é limitado ao total.</p>
       </div></details>
+      </> : null}
       </> : <section className={styles.restricted} aria-live="polite">
         <Award size={30} aria-hidden="true" />
         <h2>Resultados das turmas A, B e C</h2>

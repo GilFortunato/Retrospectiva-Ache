@@ -1,6 +1,22 @@
 import snapshot from "@/data/bi-demografico.json";
 import type { ClassId } from "@/lib/classDiary";
 
+export const disabilityGroups = {
+  fisica: "Deficiência física",
+  auditiva: "Deficiência auditiva",
+  visual: "Deficiência visual",
+  neurodivergencia: "Neurodivergência",
+  intelectual: "Deficiência intelectual",
+  outra: "Outra",
+  "nao-informado": "Não informado",
+} as const;
+export type DisabilityGroup = keyof typeof disabilityGroups;
+export type DisabilityCounts = Record<DisabilityGroup, number | null>;
+
+export function isDisabilityGroup(value: string): value is DisabilityGroup {
+  return Object.hasOwn(disabilityGroups, value);
+}
+
 export type Distribution = { label: string; count: number }[];
 export type BiSummary = {
   total: number;
@@ -16,6 +32,7 @@ export type BiDataset = {
   source: { fileName: string; sheet: string; referenceDate: string; minimumCohort: number };
   filters: { regions: string[]; states: { value: string; region: string }[]; spRegions: string[] };
   slices: Record<string, BiSummary>;
+  disabilityCounts?: DisabilityCounts;
 };
 
 export type BiApprovals = {
@@ -55,6 +72,24 @@ export function percent(value: number, total: number) {
   return new Intl.NumberFormat("pt-BR", { style: "percent", maximumFractionDigits: 1 }).format(total ? value / total : 0);
 }
 
+function csvRows(rows: (string | number)[][]) {
+  const escape = (value: string | number) => {
+    const text = String(value);
+    const safe = /^[=+\-@]/.test(text) ? "'" + text : text;
+    return '"' + safe.replace(/"/g, '""') + '"';
+  };
+  return "\uFEFF" + rows.map(row => row.map(escape).join(";")).join("\r\n");
+}
+
+export function csvDisability(group: DisabilityGroup, population: string, count: number, total: number) {
+  return csvRows([
+    ["BI Demográfico - Programa de Inclusão PcD Aché"],
+    ["Público", population],
+    ["Categoria", "Participantes", "% do público"],
+    [disabilityGroups[group], count, percent(count, total)],
+  ]);
+}
+
 export function csvSummary(summary: BiSummary, selection: string, dataset: BiDataset = biData) {
   const rows: (string | number)[][] = [
     ["BI Demográfico - Programa de Inclusão PcD Aché"],
@@ -71,10 +106,5 @@ export function csvSummary(summary: BiSummary, selection: string, dataset: BiDat
       values.forEach(item => rows.push([item.label, item.count, percent(item.count, summary.total)]));
     }
   } else rows.push(["Detalhamento", "Para proteger recortes pequenos, exibição limitada ao total."]);
-  const escape = (value: string | number) => {
-    const text = String(value);
-    const safe = /^[=+\-@]/.test(text) ? "'" + text : text;
-    return '"' + safe.replace(/"/g, '""') + '"';
-  };
-  return "\uFEFF" + rows.map(row => row.map(escape).join(";")).join("\r\n");
+  return csvRows(rows);
 }

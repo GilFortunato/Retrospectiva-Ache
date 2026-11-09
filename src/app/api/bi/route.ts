@@ -1,7 +1,7 @@
 import { isAbsolute } from "node:path";
 import { NextResponse } from "next/server";
 import type { BiApprovals } from "@/lib/biDemografico";
-import { parseDemographicDashboard, type ApprovedRoster } from "@/lib/biWorkbook";
+import { parseDemographicDashboard, parseDisabilityRoster, type ApprovedRoster } from "@/lib/biWorkbook";
 import { parseClassDiary, type ClassId } from "@/lib/classDiary";
 import { driveFileIdPattern, readWorkbook } from "@/lib/workbookSource";
 
@@ -68,7 +68,9 @@ export async function GET() {
     const aliases = readApprovedNameAliases();
     const error = lists.error ?? (roster === null || aliases === null ? "A configuração do recorte de aprovados está inválida." : undefined);
     const approvedList = error ? undefined : roster ?? (lists.classes.length ? lists.names : undefined);
-    const { data, approved, unmatched } = parseDemographicDashboard(bytes, approvedList, aliases ?? undefined);
+    const disabilityConfig = process.env.BI_DISABILITY_ROSTER?.trim();
+    const disabilityRoster = disabilityConfig ? parseDisabilityRoster(disabilityConfig) : undefined;
+    const { data, approved, unmatched } = parseDemographicDashboard(bytes, approvedList, aliases ?? undefined, disabilityRoster);
     const approvals: BiApprovals = { data: approved, classes: roster ? classes : lists.classes, partial: !roster && lists.partial, unmatched, error };
     return NextResponse.json({ data, approvals, fetchedAt: new Date().toISOString() }, { headers });
   } catch (error) {

@@ -1,15 +1,62 @@
 import { createHmac } from "node:crypto";
-import type { BiDataset, BiSummary, Distribution } from "@/lib/biDemografico";
+import { disabilityGroups, isDisabilityGroup, type BiDataset, type BiSummary, type DisabilityCounts, type DisabilityGroup, type Distribution } from "@/lib/biDemografico";
 import { openExcelWorkbook, type WorkbookRow } from "@/lib/excelWorkbook";
 import { participantKey } from "@/lib/participantName";
 
 const MISSING = "Não informado";
 const MINIMUM_COHORT = 5;
+const disabilityColumn = "Grupo de deficiência ou neurodivergência";
+const groupKeys = Object.keys(disabilityGroups).filter(isDisabilityGroup);
 
 export type ApprovedRoster = { key: string; digests: ReadonlySet<string> };
+type DisabilityRoster = { key: string; groups: ReadonlyMap<string, DisabilityGroup> };
 
 export function approvedNameDigest(name: string, key: string) {
   return createHmac("sha256", key).update(participantKey(name)).digest("hex");
+}
+
+export function parseDisabilityRoster(config: string): DisabilityRoster {
+  const value = JSON.parse(config) as { key?: unknown; groups?: unknown } | null;
+  if (!value || typeof value.key !== "string" || !/^[a-f0-9]{64}$/.test(value.key) || !value.groups
+    || typeof value.groups !== "object" || Array.isArray(value.groups)) throw new Error("O recorte por deficiência não está configurado corretamente.");
+  const groups = new Map<string, DisabilityGroup>();
+  for (const [digest, group] of Object.entries(value.groups)) {
+    if (!/^[a-f0-9]{64}$/.test(digest) || typeof group !== "string" || !isDisabilityGroup(group)) {
+      throw new Error("O recorte por deficiência não está configurado corretamente.");
+    }
+    groups.set(digest, group);
+  }
+  return { key: value.key, groups };
+}
+
+function addDisabilityCounts(
+  general: BiDataset, approved: BiDataset | null, records: WorkbookRow[], approvedRows: WorkbookRow[],
+  groupFor: (row: WorkbookRow) => DisabilityGroup,
+) {
+  const tally = (rows: WorkbookRow[]) => {
+    const counts = Object.fromEntries(groupKeys.map(group => [group, 0])) as Record<DisabilityGroup, number>;
+    for (const row of rows) counts[groupFor(row)]++;
+    return counts;
+  };
+  const totals = tally(records);
+  const small = (count: number) => count > 0 && count < MINIMUM_COHORT;
+  const display = (counts: Record<DisabilityGroup, number>, suppressed: Set<DisabilityGroup>) => {
+    // Hide a second category if the population total would reveal the only hidden count.
+    if (suppressed.size === 1) {
+      const secondary = groupKeys.filter(group => !suppressed.has(group))
+        .sort((a, b) => (counts[a] || Infinity) - (counts[b] || Infinity))[0];
+      if (secondary) suppressed.add(secondary);
+    }
+    return Object.fromEntries(groupKeys.map(group => [group, suppressed.has(group) ? null : counts[group]])) as DisabilityCounts;
+  };
+  const hiddenGeneral = new Set(groupKeys.filter(group => small(totals[group])));
+  general.disabilityCounts = display(totals, hiddenGeneral);
+  if (!approved) return;
+  const passed = tally(approvedRows);
+  const matched = tally(approvedRows.filter(row => row.Participante));
+  const hiddenApproved = new Set(groupKeys.filter(group => hiddenGeneral.has(group) || small(passed[group])
+    || small(totals[group] - matched[group])));
+  approved.disabilityCounts = display(passed, hiddenApproved);
 }
 
 export function parseDemographicWorkbook(bytes: Uint8Array): BiDataset {
@@ -20,6 +67,7 @@ export function parseDemographicDashboard(
   bytes: Uint8Array,
   approvedList?: readonly string[] | ApprovedRoster,
   approvedNameAliases: Readonly<Record<string, string>> = {},
+  disabilityRoster?: DisabilityRoster,
 ) {
   const { readSheet } = openExcelWorkbook(bytes);
   const rows = readSheet("Base Tratada");
@@ -95,7 +143,22 @@ export function parseDemographicDashboard(
   }
 
   const data = createDataset(records);
-  if (!approvedList) return { data, approved: null, unmatched: 0 };
+  const hasDisabilityColumn = Object.values(header).includes(disabilityColumn);
+  const hasDisability = hasDisabilityColumn || Boolean(disabilityRoster);
+  const groupFor = (row: WorkbookRow): DisabilityGroup => {
+    if (hasDisabilityColumn) {
+      const group = groupKeys.find(key => disabilityGroups[key] === row[disabilityColumn]);
+      return group ?? "nao-informado";
+    }
+    if (disabilityRoster && typeof row.Participante === "string") {
+      return disabilityRoster.groups.get(approvedNameDigest(row.Participante, disabilityRoster.key)) ?? "nao-informado";
+    }
+    return "nao-informado";
+  };
+  if (!approvedList) {
+    if (hasDisability) addDisabilityCounts(data, null, records, [], groupFor);
+    return { data, approved: null, unmatched: 0 };
+  }
 
   const uniqueRecords = new Map<string, WorkbookRow | null>();
   for (const row of records) {
@@ -114,5 +177,8 @@ export function parseDemographicDashboard(
   const approvedRows = [...names].map(name => uniqueRecords.get(name)).filter((row): row is WorkbookRow => Boolean(row));
   const unmatched = (roster?.digests.size ?? names.length) - approvedRows.length;
   const missingDemographics = Array.from({ length: unmatched }, (): WorkbookRow => ({}));
-  return { data, approved: createDataset([...approvedRows, ...missingDemographics], data, unmatched), unmatched };
+  const approvedPopulation = [...approvedRows, ...missingDemographics];
+  const approved = createDataset(approvedPopulation, data, unmatched);
+  if (hasDisability) addDisabilityCounts(data, approved, records, approvedPopulation, groupFor);
+  return { data, approved, unmatched };
 }

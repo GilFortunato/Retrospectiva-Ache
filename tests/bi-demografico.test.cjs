@@ -18,7 +18,7 @@ function loadTs(relative) {
   return loaded.exports;
 }
 const { biData, getSummary, normalizeFilters, csvSummary, emptyFilters } = loadTs("src/lib/biDemografico.ts");
-const { approvedNameDigest, parseDemographicWorkbook, parseDemographicDashboard } = loadTs("src/lib/biWorkbook.ts");
+const { approvedNameDigest, parseDemographicWorkbook, parseDemographicDashboard, parseDisabilityRoster } = loadTs("src/lib/biWorkbook.ts");
 const { rankApprovals, rankByGrade } = loadTs("src/lib/approvalRanking.ts");
 const { updateFinalGrades } = loadTs("src/lib/classDiary.ts");
 
@@ -142,6 +142,21 @@ test("a server-side approved roster excludes the general population from the app
   assert.equal(result.unmatched, 0);
   assert.equal(result.approved.slices.all.distributions.gender.reduce((total, item) => total + item.count, 0), 6);
   assert.ok(!JSON.stringify(result).includes([...digests][0]));
+});
+
+test("disability totals protect small categories and differences between populations", () => {
+  const key = "a".repeat(64);
+  const names = Array.from({ length: 18 }, (_, index) => `Pessoa de teste ${index + 1}`);
+  const labels = [...Array(7).fill("fisica"), ...Array(5).fill("visual"), ...Array(5).fill("neurodivergencia"), "intelectual"];
+  const groups = Object.fromEntries(names.map((name, index) => [approvedNameDigest(name, key), labels[index]]));
+  const roster = parseDisabilityRoster(JSON.stringify({ key, groups }));
+  const approved = [...names.slice(0, 6), ...names.slice(7, 12), ...names.slice(12, 16)];
+  const result = parseDemographicDashboard(workbook(18), approved, {}, roster);
+  assert.equal(result.data.disabilityCounts.fisica, 7);
+  assert.equal(result.data.disabilityCounts.intelectual, null);
+  assert.equal(result.approved.disabilityCounts.fisica, null);
+  assert.equal(result.approved.disabilityCounts.neurodivergencia, null);
+  assert.doesNotMatch(JSON.stringify(result), /Pessoa de teste|[a-f0-9]{64}/);
 });
 
 test("the approved ranking compares common weeks, shares tied positions and uses final grades when available", () => {
