@@ -19,7 +19,7 @@ function loadTs(relative) {
 }
 const { biData, getSummary, normalizeFilters, csvSummary, emptyFilters } = loadTs("src/lib/biDemografico.ts");
 const { approvedNameDigest, parseDemographicWorkbook, parseDemographicDashboard, parseDisabilityRoster } = loadTs("src/lib/biWorkbook.ts");
-const { rankApprovals, rankByGrade } = loadTs("src/lib/approvalRanking.ts");
+const { orderTeacherRecommendations, rankApprovals, rankByGrade } = loadTs("src/lib/approvalRanking.ts");
 const { updateFinalGrades } = loadTs("src/lib/classDiary.ts");
 
 function workbook(count, duplicate = false) {
@@ -193,6 +193,21 @@ test("updating class grades re-ranks candidates without replacing their profiles
     { name: "Caio", grade: 9, classId: "B" },
   ]);
   assert.deepEqual(ranking.map(row => [row.classId, row.position]), [["A", 1], ["B", 1], ["A", null]]);
+});
+
+test("prioritized candidates appear in recommendation order even without a teacher highlight", () => {
+  const candidates = [
+    { classId: "B", name: "Terceira Pessoa" },
+    { classId: "A", name: "Primeira Pessoa" },
+    { classId: "C", name: "Outra Pessoa" },
+    { classId: "B", name: "Segunda Pessoa" },
+    { classId: "B", name: "Pessoa sem indicação" },
+  ];
+  const highlights = { C: { "outra pessoa": ["Indicação docente"] } };
+  const priorities = { "A:primeira pessoa": 1, "B:segunda pessoa": 2, "B:terceira pessoa": 3 };
+  const { featured, others } = orderTeacherRecommendations(candidates, highlights, priorities);
+  assert.deepEqual(featured.map(row => row.name), ["Primeira Pessoa", "Segunda Pessoa", "Terceira Pessoa"]);
+  assert.deepEqual(others.map(row => row.name), ["Outra Pessoa"]);
 });
 
 test("the refresh API re-reads the workbook on each call with no-store responses", async () => {

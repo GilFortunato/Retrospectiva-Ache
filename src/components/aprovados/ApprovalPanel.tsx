@@ -6,6 +6,7 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { ArrowLeft, Award, ChartNoAxesCombined, ChevronDown, ClipboardList, FileSpreadsheet, Flag, MessageCircle, ShieldCheck, Star, Upload, UsersRound, type LucideIcon } from "lucide-react";
 import { orderTeacherRecommendations, rankApprovals, rankByGrade, type TeacherHighlights } from "@/lib/approvalRanking";
 import type { ClassDiary, ClassId, ClassPerformance, DiaryParticipant, PerformanceField } from "@/lib/classDiary";
+import { evaluationTags, type EvaluationTag } from "@/lib/evaluationTags";
 import { participantKey } from "@/lib/participantName";
 import dashboard from "@/components/bi/DemographicDashboard.module.css";
 import styles from "./ApprovalPanel.module.css";
@@ -103,11 +104,12 @@ function RankingByGrade({ participants, highlights }: {
   );
 }
 
-function ParticipantDetails({ participant, group, subtitle, badge, labels = [] }: {
+function ParticipantDetails({ participant, group, subtitle, badge, evaluationTag, labels = [] }: {
   participant: DiaryParticipant;
   group: string;
   subtitle?: string;
   badge?: string;
+  evaluationTag?: EvaluationTag;
   labels?: readonly string[];
 }) {
   return (
@@ -116,6 +118,7 @@ function ParticipantDetails({ participant, group, subtitle, badge, labels = [] }
         <span>
           {badge ? <small className={styles.priorityBadge}>{badge}</small> : null}
           {participant.name}{subtitle ? <small className={styles.candidateSubtitle}>{subtitle}</small> : null}
+          {evaluationTag ? <span className={styles.evaluationTag}>{evaluationTag}</span> : null}
         </span>
         <ChevronDown size={18} aria-hidden="true" />
       </summary>
@@ -156,6 +159,7 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
   priorities: Readonly<Record<string, number>>;
 }) {
   const [filter, setFilter] = useState<ClassId | "all">("all");
+  const [tagFilter, setTagFilter] = useState<EvaluationTag | "all">("all");
   const [nameSearch, setNameSearch] = useState("");
   const candidates = rankByGrade(classIds.flatMap(classId => (loaded[classId]?.results.approved ?? []).map((participant, index) => ({
     id: `${classId}-${participant.name}-${index}`,
@@ -166,7 +170,9 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
   }))));
   const search = participantKey(nameSearch);
   const visible = candidates.filter(row =>
-    (filter === "all" || row.classId === filter) && participantKey(row.name).includes(search),
+    (filter === "all" || row.classId === filter) &&
+    (tagFilter === "all" || row.participant.evaluationTag === tagFilter) &&
+    participantKey(row.name).includes(search),
   );
   const pending = candidates.filter(row => row.position === null).length;
   const { featured, others } = orderTeacherRecommendations(candidates, teacherHighlights, priorities);
@@ -181,6 +187,7 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
       participant={{ ...participant, name: displayName }}
       group={group}
       badge={badge}
+      evaluationTag={participant.evaluationTag}
       subtitle={`Turma ${classId} · ${rank}`}
       labels={labels && Object.hasOwn(labels, key) ? labels[key] : []}
     />;
@@ -230,7 +237,24 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
             onChange={event => setNameSearch(event.target.value)}
           />
         </label>
+        <label className={styles.classFilter}>Filtrar por tag
+          <select value={tagFilter} onChange={event => setTagFilter(event.target.value as EvaluationTag | "all")}>
+            <option value="all">Todas as tags</option>
+            {Object.keys(evaluationTags).map(tag => <option key={tag} value={tag}>{tag}</option>)}
+          </select>
+        </label>
       </div>
+      <details className={`${styles.participantDetails} ${styles.tagLegend}`}>
+        <summary><span>Legenda das tags</span><ChevronDown size={18} aria-hidden="true" /></summary>
+        <dl className={styles.participantBody}>
+          {Object.entries(evaluationTags).map(([tag, description]) => (
+            <div key={tag}>
+              <dt className={styles.evaluationTag}>{tag}</dt>
+              <dd>{description}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
       <p className={styles.candidateCount} aria-live="polite">
         {visible.length} de {candidates.length} candidatos{pending ? ` · ${pending} com média final pendente no total` : ""}.
       </p>

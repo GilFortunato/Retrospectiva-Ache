@@ -19,12 +19,12 @@ export default async function CandidatesPage() {
   if (session.must_change_password) redirect("/trocar-senha");
   if (!process.env.CANDIDATOS_DATABASE_URL && await isLocalDevelopmentRequest()) {
     const data = await localApprovalData();
-    return <ApprovalPanel mode="candidates" priorities={recommendationPriorities(data.teacherHighlights)} {...data} />;
+    return <ApprovalPanel mode="candidates" priorities={recommendationPriorities(data.initialLoaded)} {...data} />;
   }
 
   try {
     const data = await readCandidateProfiles();
-    return <ApprovalPanel mode="candidates" priorities={recommendationPriorities(data.teacherHighlights)} {...data} />;
+    return <ApprovalPanel mode="candidates" priorities={recommendationPriorities(data.initialLoaded)} {...data} />;
   } catch {
     return <p role="alert">Não foi possível carregar as fichas. Recarregue a página para tentar novamente.</p>;
   }

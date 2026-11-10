@@ -13,8 +13,9 @@ export function orderTeacherRecommendations<T extends { classId: ClassId; name: 
     const name = participantKey(candidate.name);
     const entries = highlights[candidate.classId];
     const labels = entries && Object.hasOwn(entries, name) ? entries[name] : [];
-    if (!labels.length) return [];
-    return [{ ...candidate, priority: priorities[`${candidate.classId}:${name}`] ?? null }];
+    const priority = priorities[`${candidate.classId}:${name}`] ?? null;
+    if (!labels.length && priority === null) return [];
+    return [{ ...candidate, priority }];
   });
 
   return {
