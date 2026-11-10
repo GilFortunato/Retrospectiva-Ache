@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import { disabilityGroups, isDisabilityGroup, type BiDataset, type BiSummary, type DisabilityCounts, type DisabilityGroup, type Distribution } from "@/lib/biDemografico";
+import { disabilityGroups, isDisabilityGroup, protectedBucket, type BiDataset, type BiSummary, type DisabilityCounts, type DisabilityGroup, type Distribution } from "@/lib/biDemografico";
 import { openExcelWorkbook, type WorkbookRow } from "@/lib/excelWorkbook";
 import { participantKey } from "@/lib/participantName";
 
@@ -7,6 +7,7 @@ const MISSING = "Não informado";
 const MINIMUM_COHORT = 5;
 const disabilityColumn = "Grupo de deficiência ou neurodivergência";
 const groupKeys = Object.keys(disabilityGroups).filter(isDisabilityGroup);
+const small = (count: number) => count > 0 && count < MINIMUM_COHORT;
 
 export type ApprovedRoster = { key: string; digests: ReadonlySet<string> };
 type DisabilityRoster = { key: string; groups: ReadonlyMap<string, DisabilityGroup> };
@@ -29,8 +30,8 @@ export function parseDisabilityRoster(config: string): DisabilityRoster {
   return { key: value.key, groups };
 }
 
-function addDisabilityCounts(
-  general: BiDataset, approved: BiDataset | null, records: WorkbookRow[], approvedRows: WorkbookRow[],
+function protectedDisabilityCounts(
+  records: WorkbookRow[], approvedRows: WorkbookRow[] | undefined,
   groupFor: (row: WorkbookRow) => DisabilityGroup,
 ) {
   const tally = (rows: WorkbookRow[]) => {
@@ -39,10 +40,9 @@ function addDisabilityCounts(
     return counts;
   };
   const totals = tally(records);
-  const small = (count: number) => count > 0 && count < MINIMUM_COHORT;
   const display = (counts: Record<DisabilityGroup, number>, suppressed: Set<DisabilityGroup>) => {
     // Hide a second category if the population total would reveal the only hidden count.
-    if (suppressed.size === 1) {
+    if (suppressed.size === 1 || small([...suppressed].reduce((total, group) => total + counts[group], 0))) {
       const secondary = groupKeys.filter(group => !suppressed.has(group))
         .sort((a, b) => (counts[a] || Infinity) - (counts[b] || Infinity))[0];
       if (secondary) suppressed.add(secondary);
@@ -50,13 +50,23 @@ function addDisabilityCounts(
     return Object.fromEntries(groupKeys.map(group => [group, suppressed.has(group) ? null : counts[group]])) as DisabilityCounts;
   };
   const hiddenGeneral = new Set(groupKeys.filter(group => small(totals[group])));
-  general.disabilityCounts = display(totals, hiddenGeneral);
-  if (!approved) return;
+  const general = display(totals, hiddenGeneral);
+  if (!approvedRows) return { general };
   const passed = tally(approvedRows);
   const matched = tally(approvedRows.filter(row => row.Participante));
   const hiddenApproved = new Set(groupKeys.filter(group => hiddenGeneral.has(group) || small(passed[group])
     || small(totals[group] - matched[group])));
-  approved.disabilityCounts = display(passed, hiddenApproved);
+  return { general, approved: display(passed, hiddenApproved) };
+}
+
+function protectBuckets(items: Distribution, hiddenLabel: (label: string) => boolean = () => false): Distribution {
+  const visible = items.filter(item => !small(item.count) && !hiddenLabel(item.label));
+  let hidden = items.reduce((total, item) => total + item.count, 0) - visible.reduce((total, item) => total + item.count, 0);
+  if (small(hidden) || items.length - visible.length === 1) {
+    if (!visible.length) return [];
+    hidden += visible.pop()!.count;
+  }
+  return hidden >= MINIMUM_COHORT ? [...visible, { label: protectedBucket, count: hidden }] : visible;
 }
 
 export function parseDemographicWorkbook(bytes: Uint8Array): BiDataset {
@@ -129,17 +139,21 @@ export function parseDemographicDashboard(
   const source = { fileName: "Planilha demográfica Aché", sheet: "Base Tratada", referenceDate, minimumCohort: MINIMUM_COHORT };
   const filters = { regions, states, spRegions };
 
+  function geographicRows(rows: WorkbookRow[]) {
+    const scopes: Record<string, WorkbookRow[]> = { all: rows };
+    regions.forEach(region => { scopes["region:" + region] = rows.filter(row => label(row["Região Brasil"]) === region); });
+    states.forEach(state => { scopes["state:" + state.value] = rows.filter(row => label(row.UF) === state.value); });
+    spRegions.forEach(region => { scopes["sp:" + region] = rows.filter(row => label(row.UF) === "SP" && label(row["Região SP"]) === region); });
+    return scopes;
+  }
+
   function createDataset(rows: WorkbookRow[], comparison?: BiDataset, unmatched = 0): BiDataset {
     const slices: Record<string, BiSummary> = {};
-    const addSlice = (key: string, subset: WorkbookRow[]) => {
+    for (const [key, subset] of Object.entries(geographicRows(rows))) {
       const baseline = comparison?.slices[key]?.total;
       const comparisonTotal = baseline === undefined ? undefined : baseline + (key === "all" ? unmatched : 0);
       slices[key] = summarize(subset, comparisonTotal);
-    };
-    addSlice("all", rows);
-    regions.forEach(region => addSlice("region:" + region, rows.filter(row => label(row["Região Brasil"]) === region)));
-    states.forEach(state => addSlice("state:" + state.value, rows.filter(row => label(row.UF) === state.value)));
-    spRegions.forEach(region => addSlice("sp:" + region, rows.filter(row => label(row.UF) === "SP" && label(row["Região SP"]) === region)));
+    }
     return { source, filters, slices };
   }
 
@@ -174,8 +188,57 @@ export function parseDemographicDashboard(
     }
     return "nao-informado";
   };
+
+  function addDisabilityBreakdown(approved?: BiDataset, approvedPopulation?: WorkbookRow[]) {
+    const generalScopes = geographicRows(records);
+    const approvedScopes = approvedPopulation && geographicRows(approvedPopulation);
+    const counts = Object.fromEntries(Object.entries(generalScopes).map(([key, scope]) => [key,
+      protectedDisabilityCounts(scope, approvedScopes?.[key], groupFor),
+    ]));
+    const children: Record<string, string[]> = { all: regions.map(region => "region:" + region) };
+    for (const state of states) (children[regions.includes(state.region) ? "region:" + state.region : "all"] ??= []).push("state:" + state.value);
+    if (spRegions.length) children["state:SP"] = spRegions.map(region => "sp:" + region);
+
+    function buildBreakdown(dataset: BiDataset, scopes: Record<string, WorkbookRow[]>, population: "general" | "approved") {
+      const nationalCounts = counts.all[population]!;
+      const byScope = (group: DisabilityGroup) => {
+        const selected = Object.fromEntries(Object.entries(scopes).map(([key, scope]) => [key, scope.filter(row => groupFor(row) === group)]));
+        const hidden = new Set(Object.keys(selected).filter(key => nationalCounts[group] === null || counts[key][population]?.[group] === null
+          || (population === "approved" && data.disabilitySlices?.[group]?.[key] === null)));
+        // Protect small remainders when a parent total is compared with its geographic children.
+        for (const [parent, keys] of Object.entries(children)) {
+          if (hidden.has(parent)) {
+            keys.forEach(key => hidden.add(key));
+            continue;
+          }
+          const visible = keys.filter(key => !hidden.has(key) && selected[key].length > 0);
+          const remainder = selected[parent].length - visible.reduce((total, key) => total + selected[key].length, 0);
+          if (small(remainder)) {
+            visible.sort((a, b) => selected[a].length - selected[b].length);
+            if (visible.length) hidden.add(visible[0]);
+          }
+        }
+        return Object.fromEntries(Object.entries(selected).map(([key, rows]) => {
+          if (hidden.has(key)) return [key, null];
+          const summary = summarize(rows);
+          if (summary.distributions) {
+            for (const [field, items] of Object.entries(summary.distributions) as [keyof NonNullable<BiSummary["distributions"]>, Distribution][]) {
+              const prefix = field === "regions" ? "region:" : field === "states" ? "state:" : field === "spRegions" ? "sp:" : "";
+              summary.distributions[field] = protectBuckets(items, name => Boolean(prefix) && hidden.has(prefix + name));
+            }
+          }
+          return [key, summary];
+        }));
+      };
+      dataset.disabilityCounts = nationalCounts;
+      dataset.disabilitySlices = Object.fromEntries(groupKeys.map(group => [group, byScope(group)])) as BiDataset["disabilitySlices"];
+    }
+
+    buildBreakdown(data, generalScopes, "general");
+    if (approved && approvedScopes) buildBreakdown(approved, approvedScopes, "approved");
+  }
   if (!approvedList) {
-    if (hasDisability) addDisabilityCounts(data, null, records, [], groupFor);
+    if (hasDisability) addDisabilityBreakdown();
     return { data, approved: null, unmatched: 0 };
   }
 
@@ -193,6 +256,6 @@ export function parseDemographicDashboard(
   missingDemographics.slice(0, pendingUnmatched).forEach(row => pendingRows.add(row));
   const approvedPopulation = [...approvedRows, ...missingDemographics];
   const approved = createDataset(approvedPopulation, data, unmatched);
-  if (hasDisability) addDisabilityCounts(data, approved, records, approvedPopulation, groupFor);
+  if (hasDisability) addDisabilityBreakdown(approved, approvedPopulation);
   return { data, approved, unmatched };
 }

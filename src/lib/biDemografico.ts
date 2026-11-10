@@ -13,6 +13,7 @@ export const disabilityGroups = {
 } as const;
 export type DisabilityGroup = keyof typeof disabilityGroups;
 export type DisabilityCounts = Record<DisabilityGroup, number | null>;
+export const protectedBucket = "Categorias agrupadas";
 
 export function isDisabilityGroup(value: string): value is DisabilityGroup {
   return Object.hasOwn(disabilityGroups, value);
@@ -38,6 +39,7 @@ export type BiDataset = {
   filters: { regions: string[]; states: { value: string; region: string }[]; spRegions: string[] };
   slices: Record<string, BiSummary>;
   disabilityCounts?: DisabilityCounts;
+  disabilitySlices?: Record<DisabilityGroup, Record<string, BiSummary | null>>;
 };
 
 export type BiApprovals = {
@@ -62,10 +64,17 @@ export function normalizeFilters(filters: BiFilters, dataset: BiDataset = biData
   return { region, state: state?.value || "", spRegion: "" };
 }
 
-export function getSummary(filters: BiFilters, dataset: BiDataset = biData): BiSummary {
+function summaryKey(filters: BiFilters, dataset: BiDataset) {
   const clean = normalizeFilters(filters, dataset);
-  const key = clean.spRegion ? "sp:" + clean.spRegion : clean.state ? "state:" + clean.state : clean.region ? "region:" + clean.region : "all";
-  return dataset.slices[key];
+  return clean.spRegion ? "sp:" + clean.spRegion : clean.state ? "state:" + clean.state : clean.region ? "region:" + clean.region : "all";
+}
+
+export function getSummary(filters: BiFilters, dataset: BiDataset = biData): BiSummary {
+  return dataset.slices[summaryKey(filters, dataset)];
+}
+
+export function getDisabilitySummary(filters: BiFilters, dataset: BiDataset, group: DisabilityGroup) {
+  return dataset.disabilitySlices?.[group]?.[summaryKey(filters, dataset)];
 }
 
 export function filterLabel(filters: BiFilters, dataset: BiDataset = biData) {
@@ -84,15 +93,6 @@ function csvRows(rows: (string | number)[][]) {
     return '"' + safe.replace(/"/g, '""') + '"';
   };
   return "\uFEFF" + rows.map(row => row.map(escape).join(";")).join("\r\n");
-}
-
-export function csvDisability(group: DisabilityGroup, population: string, count: number, total: number) {
-  return csvRows([
-    ["BI Demográfico - Programa de Inclusão PcD Aché"],
-    ["Público", population],
-    ["Categoria", "Participantes", "% do público"],
-    [disabilityGroups[group], count, percent(count, total)],
-  ]);
 }
 
 export function csvSummary(summary: BiSummary, selection: string, dataset: BiDataset = biData) {

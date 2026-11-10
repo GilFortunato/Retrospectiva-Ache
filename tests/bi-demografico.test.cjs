@@ -17,19 +17,19 @@ function loadTs(relative) {
   loaded._compile(ts.transpileModule(fs.readFileSync(filename, "utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true } }).outputText, filename);
   return loaded.exports;
 }
-const { biData, getSummary, normalizeFilters, csvSummary, emptyFilters } = loadTs("src/lib/biDemografico.ts");
+const { biData, getDisabilitySummary, getSummary, normalizeFilters, csvSummary, emptyFilters } = loadTs("src/lib/biDemografico.ts");
 const { approvedNameDigest, parseDemographicWorkbook, parseDemographicDashboard, parseDisabilityRoster } = loadTs("src/lib/biWorkbook.ts");
 const { orderTeacherRecommendations, rankApprovals, rankByGrade } = loadTs("src/lib/approvalRanking.ts");
 const { updateFinalGrades } = loadTs("src/lib/classDiary.ts");
 
-function workbook(count, duplicate = false) {
+function workbook(count, duplicate = false, geography = () => ["São Paulo", "SP", "Sudeste", "Capital"]) {
   const escape = value => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;");
   const headers = ["Participante", "Gênero", "Raça/cor", "Nascimento", "Idade", "Faixa etária", "Cidade", "UF", "Região Brasil", "Região SP", "Formação informada", "Área formação", "Situação formação"];
   const row = (values, index) => '<row r="' + index + '">' + values.map((value, column) => {
     const ref = String.fromCharCode(65 + column) + index;
     return typeof value === "number" ? `<c r="${ref}"><v>${value}</v></c>` : `<c r="${ref}" t="inlineStr"><is><t>${escape(value)}</t></is></c>`;
   }).join("") + "</row>";
-  const records = Array.from({ length: count }, (_, i) => [duplicate ? "Pessoa de teste" : `Pessoa de teste ${i + 1}`, i % 2 ? "Mulher cisgênero" : "Homem cisgênero", "Parda", "campo privado", i ? 40 : 0, "faixa antiga", "São Paulo", "SP", "Sudeste", "Capital", "curso privado", "Saúde & Biológicas", "Superior informada"]);
+  const records = Array.from({ length: count }, (_, i) => [duplicate ? "Pessoa de teste" : `Pessoa de teste ${i + 1}`, i % 2 ? "Mulher cisgênero" : "Homem cisgênero", "Parda", "campo privado", i ? 40 : 0, "faixa antiga", ...geography(i), "curso privado", "Saúde & Biológicas", "Superior informada"]);
   const sheet = '<worksheet><sheetData>' + row(headers, 1) + records.map((values, index) => row(values, index + 2)).join("") + '</sheetData></worksheet>';
   return zipSync({
     "xl/workbook.xml": strToU8('<workbook><sheets><sheet name="Base Tratada" r:id="rId1"/><sheet name="Dicionário" r:id="rId2"/></sheets></workbook>'),
@@ -174,6 +174,35 @@ test("pending classifications include approved candidates missing from demograph
   const small = parseDemographicDashboard(workbook(15), approved, {}, undefined, [names[0], absent]);
   assert.equal(small.data.disabilityCounts["classificacao-pendente"], null);
   assert.equal(small.approved.disabilityCounts["classificacao-pendente"], null);
+});
+
+test("disability intersects population and geography for KPIs, charts and CSV", () => {
+  const key = "c".repeat(64);
+  const names = Array.from({ length: 36 }, (_, index) => `Pessoa de teste ${index + 1}`);
+  const groups = Object.fromEntries(names.map((name, index) => [approvedNameDigest(name, key), index < 24 ? "fisica" : "visual"]));
+  const roster = parseDisabilityRoster(JSON.stringify({ key, groups }));
+  const source = workbook(36, false, i => {
+    if (i < 6 || (i >= 24 && i < 30)) return ["São Paulo", "SP", "Sudeste", "Capital"];
+    if (i < 12) return ["Campinas", "SP", "Sudeste", "Interior"];
+    if (i < 18 || i >= 30) return ["Rio de Janeiro", "RJ", "Sudeste", ""];
+    if (i < 23) return ["Salvador", "BA", "Nordeste", ""];
+    return ["Curitiba", "PR", "Sul", ""];
+  });
+  const { data, approved } = parseDemographicDashboard(source, [...names.slice(0, 12), ...names.slice(24, 30)], {}, roster);
+  assert.equal(getDisabilitySummary(emptyFilters, data, "fisica").total, 24);
+  assert.equal(getDisabilitySummary({ ...emptyFilters, region: "Sudeste" }, data, "fisica").total, 18);
+  assert.equal(getDisabilitySummary({ ...emptyFilters, state: "SP" }, approved, "fisica").total, 12);
+  const capital = getDisabilitySummary({ ...emptyFilters, spRegion: "Capital" }, approved, "fisica");
+  assert.equal(capital.total, 6);
+  assert.equal(capital.distributions.education[0].count, 6);
+  assert.equal(capital.distributions.gender[0].label, "Categorias agrupadas");
+  assert.equal(getDisabilitySummary({ ...emptyFilters, state: "PR" }, data, "fisica"), null);
+  assert.equal(getDisabilitySummary({ ...emptyFilters, state: "BA" }, data, "fisica"), null);
+  assert.doesNotMatch(JSON.stringify(getDisabilitySummary(emptyFilters, data, "fisica").distributions.states), /"PR"|"BA"/);
+  const csv = csvSummary(capital, "Aprovados · SP · Capital · Deficiência física", approved);
+  assert.match(csv, /Aprovados · SP · Capital · Deficiência física/);
+  assert.match(csv, /"Participantes";"6"/);
+  assert.match(csv, /Área de formação/);
 });
 
 test("the approved ranking compares common weeks, shares tied positions and uses final grades when available", () => {
