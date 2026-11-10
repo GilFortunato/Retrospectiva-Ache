@@ -159,6 +159,23 @@ test("disability totals protect small categories and differences between populat
   assert.doesNotMatch(JSON.stringify(result), /Pessoa de teste|[a-f0-9]{64}/);
 });
 
+test("pending classifications include approved candidates missing from demographics and protect small totals", () => {
+  const key = "b".repeat(64);
+  const names = Array.from({ length: 10 }, (_, index) => `Pessoa de teste ${index + 1}`);
+  const absent = "Pessoa fora da planilha";
+  const pending = [...names.slice(0, 5), absent];
+  const approved = { key, digests: new Set([...names, absent].map(name => approvedNameDigest(name, key))) };
+  const result = parseDemographicDashboard(workbook(15), approved, {}, undefined, pending);
+  assert.equal(result.unmatched, 1);
+  assert.equal(result.data.disabilityCounts["classificacao-pendente"], 5);
+  assert.equal(result.approved.disabilityCounts["classificacao-pendente"], 6);
+  assert.doesNotMatch(JSON.stringify(result), /Pessoa de teste|Pessoa fora da planilha/);
+
+  const small = parseDemographicDashboard(workbook(15), approved, {}, undefined, [names[0], absent]);
+  assert.equal(small.data.disabilityCounts["classificacao-pendente"], null);
+  assert.equal(small.approved.disabilityCounts["classificacao-pendente"], null);
+});
+
 test("the approved ranking compares common weeks, shares tied positions and uses final grades when available", () => {
   const people = [
     { name: "Ana", finalGrade: null, weeklyGrades: [{ week: 1, grade: 9 }, { week: 2, grade: 4 }] },

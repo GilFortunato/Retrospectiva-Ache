@@ -8,6 +8,7 @@ export const disabilityGroups = {
   neurodivergencia: "Neurodivergência",
   intelectual: "Deficiência intelectual",
   outra: "Outra",
+  "classificacao-pendente": "Classificação pendente",
   "nao-informado": "Não informado",
 } as const;
 export type DisabilityGroup = keyof typeof disabilityGroups;
@@ -15,6 +16,10 @@ export type DisabilityCounts = Record<DisabilityGroup, number | null>;
 
 export function isDisabilityGroup(value: string): value is DisabilityGroup {
   return Object.hasOwn(disabilityGroups, value);
+}
+
+export function candidateDisabilityGroup(accessibility?: { disabilityGroup?: DisabilityGroup; diagnosis?: unknown }): DisabilityGroup {
+  return accessibility?.disabilityGroup ?? (accessibility?.diagnosis ? "classificacao-pendente" : "nao-informado");
 }
 
 export type Distribution = { label: string; count: number }[];

@@ -7,7 +7,7 @@ import { ArrowLeft, Award, ChartNoAxesCombined, ChevronDown, ClipboardList, File
 import { orderTeacherRecommendations, rankApprovals, rankByGrade, type TeacherHighlights } from "@/lib/approvalRanking";
 import type { ClassDiary, ClassId, ClassPerformance, DiaryParticipant, PerformanceField } from "@/lib/classDiary";
 import { evaluationTags, type EvaluationTag } from "@/lib/evaluationTags";
-import { disabilityGroups, type DisabilityGroup } from "@/lib/biDemografico";
+import { candidateDisabilityGroup, disabilityGroups, type DisabilityGroup } from "@/lib/biDemografico";
 import { participantKey } from "@/lib/participantName";
 import dashboard from "@/components/bi/DemographicDashboard.module.css";
 import styles from "./ApprovalPanel.module.css";
@@ -129,6 +129,10 @@ function ParticipantDetails({ participant, group, subtitle, badge, evaluationTag
         <ChevronDown size={18} aria-hidden="true" />
       </summary>
       <div className={styles.participantBody}>
+        {disabilityGroup && participant.accessibility?.diagnosis ? <div className={styles.teacherComment}>
+          <h3>CID-10 registrado</h3>
+          <p><strong>{participant.accessibility.diagnosis.code}</strong> · {participant.accessibility.diagnosis.description}</p>
+        </div> : null}
         {disabilityGroup && participant.accessibility?.adaptation ? <div className={styles.teacherComment}>
           <h3>Necessidade de adaptação ou recurso de acessibilidade</h3>
           <p>{participant.accessibility.adaptation}</p>
@@ -183,7 +187,7 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
   const visible = candidates.filter(row =>
     (filter === "all" || row.classId === filter) &&
     (tagFilter === "all" || row.participant.evaluationTag === tagFilter) &&
-    (disabilityFilter === "all" || (row.participant.accessibility?.disabilityGroup ?? "nao-informado") === disabilityFilter) &&
+    (disabilityFilter === "all" || candidateDisabilityGroup(row.participant.accessibility) === disabilityFilter) &&
     participantKey(row.name).includes(search),
   );
   const pending = candidates.filter(row => row.position === null).length;
@@ -200,7 +204,7 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
       group={group}
       badge={badge}
       evaluationTag={participant.evaluationTag}
-      disabilityGroup={participant.accessibility?.disabilityGroup ?? "nao-informado"}
+      disabilityGroup={candidateDisabilityGroup(participant.accessibility)}
       subtitle={`Turma ${classId} · ${rank}`}
       labels={labels && Object.hasOwn(labels, key) ? labels[key] : []}
     />;

@@ -56,13 +56,19 @@ function readApprovedNameAliases(): Record<string, string> | null {
   return null;
 }
 
+async function readPendingClassifications() {
+  if (!process.env.CANDIDATOS_DATABASE_URL) return [];
+  const { readPendingDisabilityNames } = await import("@/lib/candidateStore");
+  return readPendingDisabilityNames();
+}
+
 export async function GET() {
   const localPath = process.env.BI_WORKBOOK_PATH;
   const fileId = process.env.BI_DRIVE_FILE_ID;
   const source = localPath && isAbsolute(localPath) ? localPath : fileId && driveFileIdPattern.test(fileId) ? fileId : null;
   if (!source) return NextResponse.json({ error: "A fonte demográfica ainda não foi configurada para este painel." }, { status: 503, headers });
   try {
-    const [bytes, lists] = await Promise.all([readWorkbook(source), readApprovals()]);
+    const [bytes, lists, pendingNames] = await Promise.all([readWorkbook(source), readApprovals(), readPendingClassifications()]);
     const rosterConfig = process.env.BI_APROVADOS_RECORTE?.trim();
     const roster = rosterConfig && !lists.classes.length && !lists.error ? readApprovedRoster(rosterConfig) : undefined;
     const aliases = readApprovedNameAliases();
@@ -70,7 +76,7 @@ export async function GET() {
     const approvedList = error ? undefined : roster ?? (lists.classes.length ? lists.names : undefined);
     const disabilityConfig = process.env.BI_DISABILITY_ROSTER?.trim();
     const disabilityRoster = disabilityConfig ? parseDisabilityRoster(disabilityConfig) : undefined;
-    const { data, approved, unmatched } = parseDemographicDashboard(bytes, approvedList, aliases ?? undefined, disabilityRoster);
+    const { data, approved, unmatched } = parseDemographicDashboard(bytes, approvedList, aliases ?? undefined, disabilityRoster, pendingNames);
     const approvals: BiApprovals = { data: approved, classes: roster ? classes : lists.classes, partial: !roster && lists.partial, unmatched, error };
     return NextResponse.json({ data, approvals, fetchedAt: new Date().toISOString() }, { headers });
   } catch (error) {

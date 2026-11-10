@@ -68,6 +68,7 @@ export function parseDemographicDashboard(
   approvedList?: readonly string[] | ApprovedRoster,
   approvedNameAliases: Readonly<Record<string, string>> = {},
   disabilityRoster?: DisabilityRoster,
+  pendingDisabilityNames: readonly string[] = [],
 ) {
   const { readSheet } = openExcelWorkbook(bytes);
   const rows = readSheet("Base Tratada");
@@ -143,9 +144,27 @@ export function parseDemographicDashboard(
   }
 
   const data = createDataset(records);
+  const uniqueRecords = new Map<string, WorkbookRow | null>();
+  for (const row of records) {
+    const key = participantKey(String(row.Participante));
+    uniqueRecords.set(key, uniqueRecords.has(key) ? null : row);
+  }
+  const aliases = new Map(Object.entries(approvedNameAliases).map(([name, target]) => [participantKey(name), participantKey(target)]));
+  const resolveName = (name: string) => {
+    const key = participantKey(name);
+    if (uniqueRecords.has(key)) return key;
+    const target = aliases.get(key);
+    return target && uniqueRecords.get(target) ? target : key;
+  };
+  const pendingNames = new Set(pendingDisabilityNames.map(resolveName).filter(Boolean));
+  const pendingRows = new Set([...pendingNames].flatMap(name => {
+    const row = uniqueRecords.get(name);
+    return row ? [row] : [];
+  }));
   const hasDisabilityColumn = Object.values(header).includes(disabilityColumn);
-  const hasDisability = hasDisabilityColumn || Boolean(disabilityRoster);
+  const hasDisability = hasDisabilityColumn || Boolean(disabilityRoster) || pendingNames.size > 0;
   const groupFor = (row: WorkbookRow): DisabilityGroup => {
+    if (pendingRows.has(row)) return "classificacao-pendente";
     if (hasDisabilityColumn) {
       const group = groupKeys.find(key => disabilityGroups[key] === row[disabilityColumn]);
       return group ?? "nao-informado";
@@ -160,23 +179,18 @@ export function parseDemographicDashboard(
     return { data, approved: null, unmatched: 0 };
   }
 
-  const uniqueRecords = new Map<string, WorkbookRow | null>();
-  for (const row of records) {
-    const key = participantKey(String(row.Participante));
-    uniqueRecords.set(key, uniqueRecords.has(key) ? null : row);
-  }
-  const aliases = new Map(Object.entries(approvedNameAliases).map(([name, target]) => [participantKey(name), participantKey(target)]));
   const roster = "digests" in approvedList ? approvedList : null;
   const names = "digests" in approvedList
     ? [...uniqueRecords.keys()].filter(name => approvedList.digests.has(approvedNameDigest(name, approvedList.key)))
-    : [...new Set(approvedList.map(participantKey).filter(Boolean).map(name => {
-      if (uniqueRecords.has(name)) return name;
-      const target = aliases.get(name);
-      return target && uniqueRecords.get(target) ? target : name;
-    }))];
+    : [...new Set(approvedList.map(resolveName).filter(Boolean))];
   const approvedRows = [...names].map(name => uniqueRecords.get(name)).filter((row): row is WorkbookRow => Boolean(row));
   const unmatched = (roster?.digests.size ?? names.length) - approvedRows.length;
   const missingDemographics = Array.from({ length: unmatched }, (): WorkbookRow => ({}));
+  const approvedNames = new Set(names);
+  const pendingUnmatched = [...pendingNames].filter(name => !uniqueRecords.get(name) && (
+    roster ? roster.digests.has(approvedNameDigest(name, roster.key)) : approvedNames.has(name)
+  )).length;
+  missingDemographics.slice(0, pendingUnmatched).forEach(row => pendingRows.add(row));
   const approvedPopulation = [...approvedRows, ...missingDemographics];
   const approved = createDataset(approvedPopulation, data, unmatched);
   if (hasDisability) addDisabilityCounts(data, approved, records, approvedPopulation, groupFor);

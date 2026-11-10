@@ -235,7 +235,7 @@ export default function DemographicDashboard() {
             {disabilityBars.length ? <Bars items={disabilityBars} total={overview.total} /> : null}
             {hiddenGroups.length ? <p className={styles.dataNote}>Totais protegidos {disability ? "nesta categoria" : `em ${hiddenGroups.map(group => disabilityGroups[group]).join(", ")}`}.</p> : null}
           </> : <p className={styles.dataNote}>{refreshing ? "Carregando as categorias." : "O recorte por deficiência está indisponível neste momento."}</p>}
-          <p className={styles.dataNote}>Fonte: Squad Aché. A visão por categoria é nacional e usa apenas totais consolidados. Alguns totais ficam protegidos para resguardar grupos pequenos.</p>
+          <p className={styles.dataNote}>Fontes: Squad Aché e fichas de candidatos. A visão por categoria é nacional e usa apenas totais consolidados. Alguns totais ficam protegidos para resguardar grupos pequenos.</p>
         </article>
       </section> : null}
       {!disability ? <>

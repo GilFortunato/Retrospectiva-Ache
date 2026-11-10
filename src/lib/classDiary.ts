@@ -12,7 +12,7 @@ export type ClassPerformance = Record<PerformanceField, MetricTotals>;
 export type DiaryParticipant = Record<PerformanceField, number | null> & {
   name: string;
   evaluationTag?: EvaluationTag;
-  accessibility?: { disabilityGroup?: DisabilityGroup; adaptation?: string };
+  accessibility?: { disabilityGroup?: DisabilityGroup; adaptation?: string; diagnosis?: { code: string; description: string } };
   teacherComment: string | null;
   additionalObservation: string | null;
   weeklyGrades: { week: number; grade: number }[];

@@ -56,3 +56,11 @@ export async function writeCandidateGrades(classId: ClassId, grades: ReadonlyMap
   );
   return result.rowCount === grades.size;
 }
+
+export async function readPendingDisabilityNames() {
+  const { rows } = await retrospectiveDatabase().query<{ candidate_key: string }>(
+    `SELECT candidate_key FROM candidate_profiles
+      WHERE jsonb_typeof(accessibility->'diagnosis') = 'object' AND accessibility->>'disabilityGroup' IS NULL`,
+  );
+  return rows.map(row => row.candidate_key);
+}
