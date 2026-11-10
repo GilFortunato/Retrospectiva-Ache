@@ -1,6 +1,7 @@
 import { openExcelWorkbook, type WorkbookCell, type WorkbookRow } from "@/lib/excelWorkbook";
 import { participantKey } from "@/lib/participantName";
 import type { EvaluationTag } from "@/lib/evaluationTags";
+import type { DisabilityGroup } from "@/lib/biDemografico";
 
 export type ClassId = "A" | "B" | "C";
 
@@ -11,6 +12,7 @@ export type ClassPerformance = Record<PerformanceField, MetricTotals>;
 export type DiaryParticipant = Record<PerformanceField, number | null> & {
   name: string;
   evaluationTag?: EvaluationTag;
+  accessibility?: { disabilityGroup?: DisabilityGroup; adaptation?: string };
   teacherComment: string | null;
   additionalObservation: string | null;
   weeklyGrades: { week: number; grade: number }[];

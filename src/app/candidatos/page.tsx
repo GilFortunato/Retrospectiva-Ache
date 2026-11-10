@@ -23,7 +23,7 @@ export default async function CandidatesPage() {
   }
 
   try {
-    const data = await readCandidateProfiles();
+    const data = await readCandidateProfiles({ includeAccessibility: true });
     return <ApprovalPanel mode="candidates" priorities={recommendationPriorities(data.initialLoaded)} {...data} />;
   } catch {
     return <p role="alert">Não foi possível carregar as fichas. Recarregue a página para tentar novamente.</p>;

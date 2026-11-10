@@ -7,21 +7,28 @@ import { summarizePerformance, type ClassId, type DiaryParticipant } from "@/lib
 type ProfileRow = {
   class_id: ClassId;
   candidate_key: string;
-  profile: Omit<DiaryParticipant, "finalGrade">;
+  profile: Omit<DiaryParticipant, "finalGrade" | "accessibility">;
   final_grade: number | null;
   teacher_highlights: string[];
+  accessibility: DiaryParticipant["accessibility"] | null;
 };
 
-export async function readCandidateProfiles() {
+export async function readCandidateProfiles({ includeAccessibility = false } = {}) {
   const { rows } = await retrospectiveDatabase().query<ProfileRow>(
-    "SELECT class_id, candidate_key, profile, final_grade, teacher_highlights FROM candidate_profiles",
+    `SELECT class_id, candidate_key, profile, final_grade, teacher_highlights,
+      CASE WHEN $1::boolean THEN accessibility END AS accessibility FROM candidate_profiles`,
+    [includeAccessibility],
   );
   const initialLoaded: LoadedDiaries = {};
   const teacherHighlights: TeacherHighlights = {};
   for (const classId of ["A", "B", "C"] as const) {
     const members = rows.filter(row => row.class_id === classId);
     if (!members.length) continue;
-    const approved = members.map(row => ({ ...row.profile, finalGrade: row.final_grade }))
+    const approved = members.map(row => ({
+      ...row.profile,
+      finalGrade: row.final_grade,
+      ...(row.accessibility ? { accessibility: row.accessibility } : {}),
+    }))
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
     initialLoaded[classId] = {
       filename: `Diário da Turma ${classId}`,

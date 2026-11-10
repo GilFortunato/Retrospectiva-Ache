@@ -75,7 +75,7 @@
 .candidateActions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
 .candidateFilters {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.25fr);
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -200,6 +200,10 @@
 .feedback, .error { padding: 10px 12px; border-radius: 8px; }
 .feedback { background: #edf7ef; color: #28623c; }
 .error { background: #fff2f1; color: #922b24; }
+
+@media (max-width: 900px) {
+  .candidateFilters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 @media (max-width: 580px) {
   .recommendationHighlights { grid-template-columns: minmax(0, 1fr); }

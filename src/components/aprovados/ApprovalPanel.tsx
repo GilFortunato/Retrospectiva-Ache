@@ -7,6 +7,7 @@ import { ArrowLeft, Award, ChartNoAxesCombined, ChevronDown, ClipboardList, File
 import { orderTeacherRecommendations, rankApprovals, rankByGrade, type TeacherHighlights } from "@/lib/approvalRanking";
 import type { ClassDiary, ClassId, ClassPerformance, DiaryParticipant, PerformanceField } from "@/lib/classDiary";
 import { evaluationTags, type EvaluationTag } from "@/lib/evaluationTags";
+import { disabilityGroups, type DisabilityGroup } from "@/lib/biDemografico";
 import { participantKey } from "@/lib/participantName";
 import dashboard from "@/components/bi/DemographicDashboard.module.css";
 import styles from "./ApprovalPanel.module.css";
@@ -104,12 +105,13 @@ function RankingByGrade({ participants, highlights }: {
   );
 }
 
-function ParticipantDetails({ participant, group, subtitle, badge, evaluationTag, labels = [] }: {
+function ParticipantDetails({ participant, group, subtitle, badge, evaluationTag, disabilityGroup, labels = [] }: {
   participant: DiaryParticipant;
   group: string;
   subtitle?: string;
   badge?: string;
   evaluationTag?: EvaluationTag;
+  disabilityGroup?: DisabilityGroup;
   labels?: readonly string[];
 }) {
   return (
@@ -118,11 +120,19 @@ function ParticipantDetails({ participant, group, subtitle, badge, evaluationTag
         <span>
           {badge ? <small className={styles.priorityBadge}>{badge}</small> : null}
           {participant.name}{subtitle ? <small className={styles.candidateSubtitle}>{subtitle}</small> : null}
+          {disabilityGroup ? <small className={styles.candidateSubtitle}>
+            {disabilityGroup === "nao-informado" ? "Deficiência: não informada" : disabilityGroups[disabilityGroup]}
+            {participant.accessibility?.adaptation ? " · Acessibilidade registrada" : ""}
+          </small> : null}
           {evaluationTag ? <span className={styles.evaluationTag}>{evaluationTag}</span> : null}
         </span>
         <ChevronDown size={18} aria-hidden="true" />
       </summary>
       <div className={styles.participantBody}>
+        {disabilityGroup && participant.accessibility?.adaptation ? <div className={styles.teacherComment}>
+          <h3>Necessidade de adaptação ou recurso de acessibilidade</h3>
+          <p>{participant.accessibility.adaptation}</p>
+        </div> : null}
         {labels.length ? <div>
           <h3>Destaques do professor</h3>
           <ul className={styles.teacherTags}>{labels.map(label => <li key={label}>{label}</li>)}</ul>
@@ -160,6 +170,7 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
 }) {
   const [filter, setFilter] = useState<ClassId | "all">("all");
   const [tagFilter, setTagFilter] = useState<EvaluationTag | "all">("all");
+  const [disabilityFilter, setDisabilityFilter] = useState<DisabilityGroup | "all">("all");
   const [nameSearch, setNameSearch] = useState("");
   const candidates = rankByGrade(classIds.flatMap(classId => (loaded[classId]?.results.approved ?? []).map((participant, index) => ({
     id: `${classId}-${participant.name}-${index}`,
@@ -172,6 +183,7 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
   const visible = candidates.filter(row =>
     (filter === "all" || row.classId === filter) &&
     (tagFilter === "all" || row.participant.evaluationTag === tagFilter) &&
+    (disabilityFilter === "all" || (row.participant.accessibility?.disabilityGroup ?? "nao-informado") === disabilityFilter) &&
     participantKey(row.name).includes(search),
   );
   const pending = candidates.filter(row => row.position === null).length;
@@ -188,6 +200,7 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
       group={group}
       badge={badge}
       evaluationTag={participant.evaluationTag}
+      disabilityGroup={participant.accessibility?.disabilityGroup ?? "nao-informado"}
       subtitle={`Turma ${classId} · ${rank}`}
       labels={labels && Object.hasOwn(labels, key) ? labels[key] : []}
     />;
@@ -241,6 +254,12 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
           <select value={tagFilter} onChange={event => setTagFilter(event.target.value as EvaluationTag | "all")}>
             <option value="all">Todas as tags</option>
             {Object.keys(evaluationTags).map(tag => <option key={tag} value={tag}>{tag}</option>)}
+          </select>
+        </label>
+        <label className={styles.classFilter}>Filtrar por deficiência
+          <select value={disabilityFilter} onChange={event => setDisabilityFilter(event.target.value as DisabilityGroup | "all")}>
+            <option value="all">Todas as categorias</option>
+            {Object.entries(disabilityGroups).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
         </label>
       </div>
