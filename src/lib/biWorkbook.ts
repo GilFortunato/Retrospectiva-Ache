@@ -73,6 +73,52 @@ export function parseDemographicWorkbook(bytes: Uint8Array): BiDataset {
   return parseDemographicDashboard(bytes).data;
 }
 
+function readDemographicRecords(bytes: Uint8Array, required: readonly string[]) {
+  const { readSheet } = openExcelWorkbook(bytes);
+  const rows = readSheet("Base Tratada");
+  const header = rows[0] || {};
+  if (required.some(name => !Object.values(header).includes(name))) throw new Error("A aba Base Tratada não contém as colunas esperadas pelo BI.");
+  const records = rows.slice(1).filter(row => row.A).map(row => Object.fromEntries(Object.entries(header).map(([column, title]) => [String(title), row[column] ?? ""])) as WorkbookRow);
+  if (!records.length || records.length > 50000) throw new Error("A quantidade de registros da planilha é inválida.");
+  if (new Set(records.map(row => String(row.Participante).trim().toLocaleLowerCase("pt-BR"))).size !== records.length) throw new Error("A planilha contém participantes repetidos. Revise a base antes de atualizar o BI.");
+  return { header, records, readSheet };
+}
+
+function matchDemographicNames(records: WorkbookRow[], approvedNameAliases: Readonly<Record<string, string>>) {
+  const uniqueRecords = new Map<string, WorkbookRow | null>();
+  for (const row of records) {
+    const key = participantKey(String(row.Participante));
+    uniqueRecords.set(key, uniqueRecords.has(key) ? null : row);
+  }
+  const aliases = new Map(Object.entries(approvedNameAliases).map(([name, target]) => [participantKey(name), participantKey(target)]));
+  const resolveName = (name: string) => {
+    const key = participantKey(name);
+    if (uniqueRecords.has(key)) return key;
+    const target = aliases.get(key);
+    return target && uniqueRecords.get(target) ? target : key;
+  };
+  return { uniqueRecords, resolveName };
+}
+
+const label = (value: unknown) => [undefined, null, "", "—", "-"].includes(value as string) ? MISSING : String(value).trim() || MISSING;
+
+export type CandidateLocations = Readonly<Partial<Record<string, { city: string; state: string }>>>;
+
+export function parseCandidateLocations(bytes: Uint8Array, names: readonly string[], aliases: Readonly<Record<string, string>> = {}): CandidateLocations {
+  const { records } = readDemographicRecords(bytes, ["Participante", "Cidade", "UF"]);
+  const { uniqueRecords, resolveName } = matchDemographicNames(records, aliases);
+  return Object.fromEntries(names.flatMap(name => {
+    const row = uniqueRecords.get(resolveName(name));
+    if (!row) return [];
+    const city = label(row.Cidade);
+    const state = label(row.UF).toUpperCase();
+    return [[participantKey(name), {
+      city: participantKey(city) === participantKey(MISSING) ? "" : city,
+      state: /^[A-Z]{2}$/.test(state) ? state : "",
+    }]];
+  }));
+}
+
 export function parseDemographicDashboard(
   bytes: Uint8Array,
   approvedList?: readonly string[] | ApprovedRoster,
@@ -80,16 +126,9 @@ export function parseDemographicDashboard(
   disabilityRoster?: DisabilityRoster,
   pendingDisabilityNames: readonly string[] = [],
 ) {
-  const { readSheet } = openExcelWorkbook(bytes);
-  const rows = readSheet("Base Tratada");
-  const header = rows[0] || {};
   const required = ["Participante", "Gênero", "Raça/cor", "Idade", "Cidade", "UF", "Região Brasil", "Região SP", "Área formação", "Situação formação"];
-  if (required.some(name => !Object.values(header).includes(name))) throw new Error("A aba Base Tratada não contém as colunas esperadas pelo BI.");
-  const records = rows.slice(1).filter(row => row.A).map(row => Object.fromEntries(Object.entries(header).map(([column, title]) => [String(title), row[column] ?? ""])) as WorkbookRow);
-  if (!records.length || records.length > 50000) throw new Error("A quantidade de registros da planilha é inválida.");
-  if (new Set(records.map(row => String(row.Participante).trim().toLocaleLowerCase("pt-BR"))).size !== records.length) throw new Error("A planilha contém participantes repetidos. Revise a base antes de atualizar o BI.");
+  const { header, records, readSheet } = readDemographicRecords(bytes, required);
 
-  const label = (value: unknown) => [undefined, null, "", "—", "-"].includes(value as string) ? MISSING : String(value).trim() || MISSING;
   const age = (row: WorkbookRow): number | null => typeof row.Idade === "number" && Number.isFinite(row.Idade) && row.Idade >= 18 && row.Idade <= 100 ? row.Idade : null;
   const ageBand = (row: WorkbookRow) => {
     const value = age(row);
@@ -158,18 +197,7 @@ export function parseDemographicDashboard(
   }
 
   const data = createDataset(records);
-  const uniqueRecords = new Map<string, WorkbookRow | null>();
-  for (const row of records) {
-    const key = participantKey(String(row.Participante));
-    uniqueRecords.set(key, uniqueRecords.has(key) ? null : row);
-  }
-  const aliases = new Map(Object.entries(approvedNameAliases).map(([name, target]) => [participantKey(name), participantKey(target)]));
-  const resolveName = (name: string) => {
-    const key = participantKey(name);
-    if (uniqueRecords.has(key)) return key;
-    const target = aliases.get(key);
-    return target && uniqueRecords.get(target) ? target : key;
-  };
+  const { uniqueRecords, resolveName } = matchDemographicNames(records, approvedNameAliases);
   const pendingNames = new Set(pendingDisabilityNames.map(resolveName).filter(Boolean));
   const pendingRows = new Set([...pendingNames].flatMap(name => {
     const row = uniqueRecords.get(name);

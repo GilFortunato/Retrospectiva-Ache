@@ -4,6 +4,28 @@ import { isAbsolute } from "node:path";
 const MAX_BYTES = 8 * 1024 * 1024;
 export const driveFileIdPattern = /^[A-Za-z0-9_-]{10,200}$/;
 
+export function demographicWorkbookSource() {
+  const localPath = process.env.BI_WORKBOOK_PATH;
+  const fileId = process.env.BI_DRIVE_FILE_ID;
+  if (localPath && isAbsolute(localPath)) return localPath;
+  return fileId && driveFileIdPattern.test(fileId) ? fileId : null;
+}
+
+export function readApprovedNameAliases(): Record<string, string> | null {
+  const config = process.env.BI_APROVADOS_NOMES_EQUIVALENTES?.trim();
+  if (!config) return {};
+  try {
+    const value: unknown = JSON.parse(config);
+    if (value && typeof value === "object" && !Array.isArray(value)
+      && Object.entries(value).every(([name, target]) => name.trim() && typeof target === "string" && target.trim())) {
+      return value as Record<string, string>;
+    }
+  } catch {
+    // Keep invalid server configuration out of the response.
+  }
+  return null;
+}
+
 export async function readWorkbook(source: string) {
   let bytes: Uint8Array;
   if (isAbsolute(source)) {

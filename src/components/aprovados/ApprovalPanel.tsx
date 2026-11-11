@@ -8,6 +8,7 @@ import { orderTeacherRecommendations, rankApprovals, rankByGrade, type TeacherHi
 import type { ClassDiary, ClassId, ClassPerformance, DiaryParticipant, PerformanceField } from "@/lib/classDiary";
 import { evaluationTags, type EvaluationTag } from "@/lib/evaluationTags";
 import { candidateDisabilityGroup, disabilityGroups, type DisabilityGroup } from "@/lib/biDemografico";
+import type { CandidateLocations } from "@/lib/biWorkbook";
 import { participantKey } from "@/lib/participantName";
 import dashboard from "@/components/bi/DemographicDashboard.module.css";
 import styles from "./ApprovalPanel.module.css";
@@ -167,31 +168,54 @@ function ParticipantDetails({ participant, group, subtitle, badge, evaluationTag
   );
 }
 
-function Candidates({ loaded, teacherHighlights, priorities }: {
+function Candidates({ loaded, teacherHighlights, priorities, locations }: {
   loaded: LoadedDiaries;
   teacherHighlights: TeacherHighlights;
   priorities: Readonly<Record<string, number>>;
+  locations?: CandidateLocations;
 }) {
   const [filter, setFilter] = useState<ClassId | "all">("all");
   const [tagFilter, setTagFilter] = useState<EvaluationTag | "all">("all");
   const [disabilityFilter, setDisabilityFilter] = useState<DisabilityGroup | "all">("all");
   const [nameSearch, setNameSearch] = useState("");
-  const candidates = rankByGrade(classIds.flatMap(classId => (loaded[classId]?.results.approved ?? []).map((participant, index) => ({
-    id: `${classId}-${participant.name}-${index}`,
-    classId,
-    participant,
-    name: participant.name,
-    grade: participant.finalGrade,
-  }))));
+  const [stateFilter, setStateFilter] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const candidates = rankByGrade(classIds.flatMap(classId => (loaded[classId]?.results.approved ?? []).map((participant, index) => {
+    const nameKey = participantKey(participant.name);
+    const location = locations && Object.hasOwn(locations, nameKey) ? locations[nameKey] : undefined;
+    return {
+      id: `${classId}-${participant.name}-${index}`,
+      classId,
+      participant,
+      name: participant.name,
+      grade: participant.finalGrade,
+      nameKey,
+      cityKey: participantKey(location?.city ?? ""),
+      location,
+    };
+  })));
+  const states = [...new Set(candidates.flatMap(({ location }) => location?.state ? [location.state] : []))].sort();
+  const cities = [...new Map(candidates.flatMap(({ cityKey, location }) =>
+    location?.city && (!stateFilter || location.state === stateFilter) ? [[cityKey, location.city] as const] : [],
+  ))].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
   const search = participantKey(nameSearch);
   const visible = candidates.filter(row =>
     (filter === "all" || row.classId === filter) &&
     (tagFilter === "all" || row.participant.evaluationTag === tagFilter) &&
     (disabilityFilter === "all" || candidateDisabilityGroup(row.participant.accessibility) === disabilityFilter) &&
-    participantKey(row.name).includes(search),
+    (!stateFilter || row.location?.state === stateFilter) &&
+    (!cityFilter || row.cityKey === cityFilter) &&
+    row.nameKey.includes(search),
   );
   const pending = candidates.filter(row => row.position === null).length;
   const { featured, others } = orderTeacherRecommendations(candidates, teacherHighlights, priorities);
+
+  function changeState(state: string) {
+    setStateFilter(state);
+    if (state && cityFilter && !candidates.some(row => row.location?.state === state && row.cityKey === cityFilter)) {
+      setCityFilter("");
+    }
+  }
 
   function candidateCard({ id, participant, classId, position, grade }: typeof candidates[number], group: string, badge?: string) {
     const labels = teacherHighlights[classId];
@@ -266,7 +290,20 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
             {Object.entries(disabilityGroups).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
         </label>
+        <label className={styles.classFilter}>Filtrar por estado (UF)
+          <select value={stateFilter} onChange={event => changeState(event.target.value)} disabled={!states.length}>
+            <option value="">Todos os estados</option>
+            {states.map(state => <option key={state} value={state}>{state}</option>)}
+          </select>
+        </label>
+        <label className={styles.classFilter}>Filtrar por cidade
+          <select value={cityFilter} onChange={event => setCityFilter(event.target.value)} disabled={!cities.length}>
+            <option value="">Todas as cidades</option>
+            {cities.map(([key, city]) => <option key={key} value={key}>{city}</option>)}
+          </select>
+        </label>
       </div>
+      {!locations && candidates.length > 0 ? <p className={styles.source}>Os filtros de cidade e estado estão temporariamente indisponíveis.</p> : null}
       <details className={`${styles.participantDetails} ${styles.tagLegend}`}>
         <summary><span>Legenda das tags</span><ChevronDown size={18} aria-hidden="true" /></summary>
         <dl className={styles.participantBody}>
@@ -289,11 +326,12 @@ function Candidates({ loaded, teacherHighlights, priorities }: {
   </>;
 }
 
-export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = {}, mode = "approvals", priorities = {} }: {
+export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = {}, mode = "approvals", priorities = {}, locations }: {
   initialLoaded?: LoadedDiaries;
   teacherHighlights?: TeacherHighlights;
   mode?: "approvals" | "candidates";
   priorities?: Readonly<Record<string, number>>;
+  locations?: CandidateLocations;
 }) {
   const candidateMode = mode === "candidates";
   const [selectedClass, setSelectedClass] = useState<ClassId>("C");
@@ -382,7 +420,7 @@ export default function ApprovalPanel({ initialLoaded = {}, teacherHighlights = 
         </header>
 
         {candidateMode ? (
-          <Candidates loaded={loaded} teacherHighlights={teacherHighlights} priorities={priorities} />
+          <Candidates loaded={loaded} teacherHighlights={teacherHighlights} priorities={priorities} locations={locations} />
         ) : <>
         <input ref={input} hidden type="file" accept=".xlsx,.xlsm" onChange={loadDiary} aria-label="Selecionar diário de classe" />
         <div className={styles.classes} role="group" aria-label="Selecionar turma">

@@ -75,7 +75,7 @@
 .candidateActions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
 .candidateFilters {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.25fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }

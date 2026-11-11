@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
-import ApprovalPanel from "@/components/aprovados/ApprovalPanel";
+import ApprovalPanel, { type LoadedDiaries } from "@/components/aprovados/ApprovalPanel";
 import { redirect } from "next/navigation";
 import { currentPortalSession } from "@/lib/portalAuth";
 import { readCandidateProfiles } from "@/lib/candidateStore";
 import { localApprovalData } from "@/lib/localApprovalData";
 import { isLocalDevelopmentRequest } from "@/lib/localRequest";
 import { recommendationPriorities } from "@/lib/recommendationPriorities";
+import { parseCandidateLocations } from "@/lib/biWorkbook";
+import { demographicWorkbookSource, readApprovedNameAliases, readWorkbook } from "@/lib/workbookSource";
+
+export const maxDuration = 60;
 
 export const metadata: Metadata = {
   title: "Candidatos | Retrospectiva Aché",
@@ -13,18 +17,29 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+async function readCandidateLocations(loaded: LoadedDiaries = {}) {
+  const source = demographicWorkbookSource();
+  const aliases = readApprovedNameAliases();
+  if (!source || !aliases) return undefined;
+  const names = Object.values(loaded).flatMap(({ results }) => results.approved.map(({ name }) => name));
+  if (!names.length) return {};
+  try {
+    return parseCandidateLocations(await readWorkbook(source), names, aliases);
+  } catch {
+    return undefined;
+  }
+}
+
 export default async function CandidatesPage() {
   const session = await currentPortalSession();
   if (!session) redirect("/login");
   if (session.must_change_password) redirect("/trocar-senha");
-  if (!process.env.CANDIDATOS_DATABASE_URL && await isLocalDevelopmentRequest()) {
-    const data = await localApprovalData();
-    return <ApprovalPanel mode="candidates" priorities={recommendationPriorities(data.initialLoaded)} {...data} />;
-  }
-
   try {
-    const data = await readCandidateProfiles({ includeAccessibility: true });
-    return <ApprovalPanel mode="candidates" priorities={recommendationPriorities(data.initialLoaded)} {...data} />;
+    const data = !process.env.CANDIDATOS_DATABASE_URL && await isLocalDevelopmentRequest()
+      ? await localApprovalData()
+      : await readCandidateProfiles({ includeAccessibility: true });
+    const locations = await readCandidateLocations(data.initialLoaded);
+    return <ApprovalPanel mode="candidates" locations={locations} priorities={recommendationPriorities(data.initialLoaded)} {...data} />;
   } catch {
     return <p role="alert">Não foi possível carregar as fichas. Recarregue a página para tentar novamente.</p>;
   }

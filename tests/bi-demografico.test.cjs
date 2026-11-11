@@ -18,7 +18,7 @@ function loadTs(relative) {
   return loaded.exports;
 }
 const { biData, getDisabilitySummary, getSummary, normalizeFilters, csvSummary, emptyFilters } = loadTs("src/lib/biDemografico.ts");
-const { approvedNameDigest, parseDemographicWorkbook, parseDemographicDashboard, parseDisabilityRoster } = loadTs("src/lib/biWorkbook.ts");
+const { approvedNameDigest, parseCandidateLocations, parseDemographicWorkbook, parseDemographicDashboard, parseDisabilityRoster } = loadTs("src/lib/biWorkbook.ts");
 const { orderTeacherRecommendations, rankApprovals, rankByGrade } = loadTs("src/lib/approvalRanking.ts");
 const { updateFinalGrades } = loadTs("src/lib/classDiary.ts");
 
@@ -90,6 +90,20 @@ test("re-reading an edited workbook updates totals, filters and reference date",
 
 test("duplicate participants stop the import without disclosing identities", () => {
   assert.throws(() => parseDemographicWorkbook(workbook(6, true)), /participantes repetidos/);
+});
+
+test("candidate locations include only matched candidates and use the same name aliases as the BI", () => {
+  const locations = parseCandidateLocations(workbook(3, false, index => [
+    ["São Paulo", "SP", "Sudeste", "Capital"],
+    ["Não informado", "—", "", ""],
+    ["Curitiba", "PR", "Sul", ""],
+  ][index]), [" PESSÓA  DE TESTE 1 ", "Nome no diário", "Sem correspondência"], {
+    "Nome no diário": "Pessoa de teste 2",
+  });
+  assert.deepEqual(locations, {
+    "pessoa de teste 1": { city: "São Paulo", state: "SP" },
+    "nome no diario": { city: "", state: "" },
+  });
 });
 
 test("the approved recorte deduplicates names, retains unmatched people and protects small complementary groups", () => {

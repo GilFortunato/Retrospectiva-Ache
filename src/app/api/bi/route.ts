@@ -1,9 +1,8 @@
-import { isAbsolute } from "node:path";
 import { NextResponse } from "next/server";
 import type { BiApprovals } from "@/lib/biDemografico";
 import { parseDemographicDashboard, parseDisabilityRoster, type ApprovedRoster } from "@/lib/biWorkbook";
 import { parseClassDiary, type ClassId } from "@/lib/classDiary";
-import { driveFileIdPattern, readWorkbook } from "@/lib/workbookSource";
+import { demographicWorkbookSource, readApprovedNameAliases, readWorkbook } from "@/lib/workbookSource";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,21 +40,6 @@ async function readApprovals() {
   };
 }
 
-function readApprovedNameAliases(): Record<string, string> | null {
-  const config = process.env.BI_APROVADOS_NOMES_EQUIVALENTES?.trim();
-  if (!config) return {};
-  try {
-    const value: unknown = JSON.parse(config);
-    if (value && typeof value === "object" && !Array.isArray(value)
-      && Object.entries(value).every(([name, target]) => name.trim() && typeof target === "string" && target.trim())) {
-      return value as Record<string, string>;
-    }
-  } catch {
-    // The response reports the invalid configuration without including names.
-  }
-  return null;
-}
-
 async function readPendingClassifications() {
   if (!process.env.CANDIDATOS_DATABASE_URL) return [];
   const { readPendingDisabilityNames } = await import("@/lib/candidateStore");
@@ -63,9 +47,7 @@ async function readPendingClassifications() {
 }
 
 export async function GET() {
-  const localPath = process.env.BI_WORKBOOK_PATH;
-  const fileId = process.env.BI_DRIVE_FILE_ID;
-  const source = localPath && isAbsolute(localPath) ? localPath : fileId && driveFileIdPattern.test(fileId) ? fileId : null;
+  const source = demographicWorkbookSource();
   if (!source) return NextResponse.json({ error: "A fonte demográfica ainda não foi configurada para este painel." }, { status: 503, headers });
   try {
     const [bytes, lists, pendingNames] = await Promise.all([readWorkbook(source), readApprovals(), readPendingClassifications()]);
